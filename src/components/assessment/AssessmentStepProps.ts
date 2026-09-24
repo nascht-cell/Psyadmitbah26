@@ -6,6 +6,7 @@ export interface AssessmentStepProps {
   errors: Record<string, string>;
   onBlurField?: (fieldKey: string, value: any) => void;
   onOpenDictation?: (field: string) => void;
+  onApplyExtractedData?: (extractedData: Partial<PsychiatricAssessment>) => void;
   onApplyWnlMse?: () => void;
   onApplyWnlPhysical?: () => void;
   toggleArrayItem: (field: keyof PsychiatricAssessment, item: string) => void;

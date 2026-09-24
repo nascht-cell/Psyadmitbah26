@@ -21,6 +21,7 @@ interface Props {
   onInsertText: (text: string, targetField: string, mode: 'append' | 'replace') => void;
   onApplyExtractedData?: (extractedData: Partial<PsychiatricAssessment>) => void;
   defaultTargetField?: string;
+  initialText?: string;
 }
 
 export const AudioDictationModal: React.FC<Props> = ({
@@ -29,11 +30,12 @@ export const AudioDictationModal: React.FC<Props> = ({
   onInsertText,
   onApplyExtractedData,
   defaultTargetField = 'hpiDetails',
+  initialText = '',
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcribedText, setTranscribedText] = useState('');
+  const [transcribedText, setTranscribedText] = useState(initialText);
   const [targetField, setTargetField] = useState(defaultTargetField);
   const [insertMode, setInsertMode] = useState<'append' | 'replace'>('append');
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -53,20 +55,49 @@ export const AudioDictationModal: React.FC<Props> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
   const speechTextRef = useRef<string>('');
+  const isRecordingRef = useRef<boolean>(false);
 
   useEffect(() => {
-    setTargetField(defaultTargetField);
-  }, [defaultTargetField]);
+    if (isOpen) {
+      setTargetField(defaultTargetField);
+      if (initialText) {
+        setTranscribedText(initialText);
+      }
+    }
+  }, [isOpen, defaultTargetField, initialText]);
+
+  const teardownAudioAndSpeech = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try {
+        const rec = recognitionRef.current;
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        rec.abort();
+      } catch (_) {}
+      recognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
+    }
+    if (streamRef.current) {
+      try {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (_) {}
+      streamRef.current = null;
+    }
+  };
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) {}
-      }
+      teardownAudioAndSpeech();
       if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
   }, [audioUrl]);
@@ -74,6 +105,9 @@ export const AudioDictationModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const startRecording = async () => {
+    // 1. Force teardown of any previous media or speech recognition state
+    teardownAudioAndSpeech();
+
     setErrorMessage(null);
     setAudioBlob(null);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -81,10 +115,10 @@ export const AudioDictationModal: React.FC<Props> = ({
     setRecordingTime(0);
     speechTextRef.current = '';
     audioChunksRef.current = [];
+    isRecordingRef.current = true;
 
     // Check if browser native SpeechRecognition is supported
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    let recognitionStarted = false;
 
     if (SpeechRecognition) {
       try {
@@ -108,11 +142,28 @@ export const AudioDictationModal: React.FC<Props> = ({
           console.warn('Speech recognition notice:', event.error);
         };
 
-        recognition.start();
+        recognition.onend = () => {
+          if (isRecordingRef.current && recognitionRef.current) {
+            try {
+              recognition.start();
+            } catch (_) {}
+          }
+        };
+
+        try {
+          recognition.start();
+        } catch (e) {
+          console.warn('Speech recognition start failed, retrying after reset...', e);
+          setTimeout(() => {
+            if (isRecordingRef.current && recognitionRef.current) {
+              try { recognitionRef.current.start(); } catch (_) {}
+            }
+          }, 150);
+        }
+
         recognitionRef.current = recognition;
-        recognitionStarted = true;
       } catch (e) {
-        console.warn('Speech recognition start failed, using mediaRecorder:', e);
+        console.warn('Speech recognition setup failed, using mediaRecorder:', e);
       }
     }
 
@@ -161,6 +212,7 @@ export const AudioDictationModal: React.FC<Props> = ({
       }, 1000);
     } catch (err: any) {
       console.error('Error accessing microphone:', err);
+      isRecordingRef.current = false;
       setErrorMessage(
         'ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตสิทธิ์การใช้งานไมโครโฟนในเบราว์เซอร์'
       );
@@ -168,6 +220,7 @@ export const AudioDictationModal: React.FC<Props> = ({
   };
 
   const stopRecording = () => {
+    isRecordingRef.current = false;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -175,18 +228,27 @@ export const AudioDictationModal: React.FC<Props> = ({
 
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop();
+        const rec = recognitionRef.current;
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        rec.abort();
       } catch (_) {}
       recognitionRef.current = null;
     }
 
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
       setIsRecording(false);
     }
 
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      try {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (_) {}
       streamRef.current = null;
     }
   };

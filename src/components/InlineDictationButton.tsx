@@ -13,10 +13,11 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [unsupported, setUnsupported] = useState(false);
   const [livePreview, setLivePreview] = useState<string>('');
-  
+
   const recognitionRef = useRef<any>(null);
   const fullTranscriptRef = useRef<string>('');
   const hasCommittedRef = useRef<boolean>(false);
+  const isListeningRef = useRef<boolean>(false);
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
 
@@ -28,16 +29,23 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
     }
 
     return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.onend = null;
-          recognitionRef.current.onerror = null;
-          recognitionRef.current.onresult = null;
-          recognitionRef.current.stop();
-        } catch (_) {}
-      }
+      cleanupRecognition();
     };
   }, []);
+
+  const cleanupRecognition = () => {
+    if (recognitionRef.current) {
+      try {
+        const rec = recognitionRef.current;
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        rec.abort();
+      } catch (_) {}
+      recognitionRef.current = null;
+    }
+  };
 
   const commitTranscript = useCallback(() => {
     const textToCommit = fullTranscriptRef.current.trim();
@@ -48,15 +56,9 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
   }, []);
 
   const stopListening = useCallback(() => {
-    // Commit any captured transcript immediately before stopping recognition
+    isListeningRef.current = false;
     commitTranscript();
-
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (_) {}
-      recognitionRef.current = null;
-    }
+    cleanupRecognition();
     setIsListening(false);
     setLivePreview('');
   }, [commitTranscript]);
@@ -66,18 +68,17 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
+    // 1. Force cleanup of any previous recognition instance
+    cleanupRecognition();
+
+    fullTranscriptRef.current = '';
+    hasCommittedRef.current = false;
+    isListeningRef.current = true;
+    setLivePreview('');
+
     try {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) {}
-      }
-
-      fullTranscriptRef.current = '';
-      hasCommittedRef.current = false;
-      setLivePreview('');
-
       const recognition = new SpeechRecognition();
       recognition.lang = 'th-TH';
-      // Enable continuous listening and interim results so words are captured in real-time as spoken
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
@@ -108,21 +109,45 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
 
       recognition.onerror = (event: any) => {
         console.warn('Speech Recognition notice:', event.error);
-        if (event.error !== 'no-speech') {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           stopListening();
+          alert('ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตสิทธิ์ในเบราว์เซอร์');
         }
       };
 
       recognition.onend = () => {
         commitTranscript();
+        // If user is still in listening mode, Chrome auto-closed due to silence, try restart
+        if (isListeningRef.current) {
+          try {
+            recognition.start();
+            return;
+          } catch (_) {}
+        }
         setIsListening(false);
         setLivePreview('');
       };
 
-      recognition.start();
       recognitionRef.current = recognition;
+
+      // Start recognition with small safety fallback for browser state transition
+      try {
+        recognition.start();
+      } catch (err) {
+        console.warn('Initial recognition.start() failed, retrying after reset...', err);
+        setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.error('Retry speech recognition failed:', e);
+              setIsListening(false);
+            }
+          }
+        }, 150);
+      }
     } catch (err) {
-      console.warn('Failed to start SpeechRecognition:', err);
+      console.warn('Failed to initialize SpeechRecognition:', err);
       setIsListening(false);
       setLivePreview('');
     }
