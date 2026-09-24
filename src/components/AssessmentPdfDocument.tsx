@@ -349,8 +349,11 @@ const AssessmentPdfDocumentComponent: React.FC<Props> = ({ data, showPageBadges 
   const renderSignature = () => (
     <div className="pt-2 flex justify-end">
       <div className="w-80 text-center space-y-0.5 text-[12.5pt]">
-        <div className="pb-0.5 font-normal">
-          ลงชื่อ ............................................................................ แพทย์ผู้ประเมิน
+        <div className="pb-0.5 font-normal whitespace-nowrap">
+          ลงชื่อ ............................................................................
+        </div>
+        <div className="font-normal text-black">
+          แพทย์ผู้ประเมิน
         </div>
         <div className="font-normal text-black">
           ({data.physicianName || '............................................................................'})
