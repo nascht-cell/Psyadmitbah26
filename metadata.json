@@ -1,0 +1,10 @@
+{
+  "name": "ฟอร์มแอดมิทไซไค",
+  "description": "ระบบบันทึกแบบประเมินแรกรับผู้ป่วยจิตเวช กองจิตเวชและประสาทวิทยา โรงพยาบาลภูมิพลอดุลยเดช จัดเก็บ ค้นหาด้วย HN เพื่อแก้ไข และส่งออกรายงาน PDF ขนาด A4",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
