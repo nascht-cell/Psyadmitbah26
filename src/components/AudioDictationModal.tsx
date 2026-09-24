@@ -5,13 +5,12 @@ import {
   Sparkles,
   X,
   Check,
-  RotateCcw,
   Loader2,
   Volume2,
   AlertCircle,
   Wand2,
-  Brain,
   CheckCircle2,
+  Copy,
 } from 'lucide-react';
 import { PsychiatricAssessment } from '../types/assessment';
 
@@ -37,9 +36,6 @@ export const AudioDictationModal: React.FC<Props> = ({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcribedText, setTranscribedText] = useState(initialText);
   const [targetField, setTargetField] = useState(defaultTargetField);
-  const [insertMode, setInsertMode] = useState<'append' | 'replace'>('append');
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -47,7 +43,6 @@ export const AudioDictationModal: React.FC<Props> = ({
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedPreview, setExtractedPreview] = useState<any | null>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
-  const [actionTab, setActionTab] = useState<'ai' | 'manual'>('ai');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -67,6 +62,7 @@ export const AudioDictationModal: React.FC<Props> = ({
   }, [isOpen, defaultTargetField, initialText]);
 
   const teardownAudioAndSpeech = () => {
+    isRecordingRef.current = false;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -86,6 +82,7 @@ export const AudioDictationModal: React.FC<Props> = ({
       try {
         mediaRecorderRef.current.stop();
       } catch (_) {}
+      mediaRecorderRef.current = null;
     }
     if (streamRef.current) {
       try {
@@ -98,27 +95,24 @@ export const AudioDictationModal: React.FC<Props> = ({
   useEffect(() => {
     return () => {
       teardownAudioAndSpeech();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [audioUrl]);
+  }, []);
 
   if (!isOpen) return null;
 
   const startRecording = async () => {
-    // 1. Force teardown of any previous media or speech recognition state
+    // Teardown any previous audio stream & recognition cleanly
     teardownAudioAndSpeech();
 
     setErrorMessage(null);
-    setAudioBlob(null);
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
     setRecordingTime(0);
     speechTextRef.current = '';
     audioChunksRef.current = [];
     isRecordingRef.current = true;
 
     // Check if browser native SpeechRecognition is supported
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (SpeechRecognition) {
       try {
@@ -153,23 +147,27 @@ export const AudioDictationModal: React.FC<Props> = ({
         try {
           recognition.start();
         } catch (e) {
-          console.warn('Speech recognition start failed, retrying after reset...', e);
+          console.warn('Speech recognition start retry...', e);
           setTimeout(() => {
             if (isRecordingRef.current && recognitionRef.current) {
-              try { recognitionRef.current.start(); } catch (_) {}
+              try {
+                recognitionRef.current.start();
+              } catch (_) {}
             }
           }, 150);
         }
 
         recognitionRef.current = recognition;
       } catch (e) {
-        console.warn('Speech recognition setup failed, using mediaRecorder:', e);
+        console.warn('Speech recognition setup failed:', e);
       }
     }
 
     try {
       if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-        throw new Error('เบราว์เซอร์หรือโปรโตคอลนี้ไม่อนุญาตให้เข้าถึงไมโครโฟน (หากใช้งานผ่าน HTTP กรุณาเปลี่ยนเป็น HTTPS)');
+        throw new Error(
+          'เบราว์เซอร์หรือโปรโตคอลนี้ไม่อนุญาตให้เข้าถึงไมโครโฟน (หากใช้งานผ่าน HTTP กรุณาเปลี่ยนเป็น HTTPS)'
+        );
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -194,12 +192,9 @@ export const AudioDictationModal: React.FC<Props> = ({
         const combinedBlob = new Blob(audioChunksRef.current, {
           type: recorder.mimeType || 'audio/webm',
         });
-        setAudioBlob(combinedBlob);
-        const url = URL.createObjectURL(combinedBlob);
-        setAudioUrl(url);
 
-        // If Web Speech API didn't produce text, try backend transcribe
-        if (!speechTextRef.current.trim()) {
+        // If Web Speech API didn't produce text, fallback to backend transcribe
+        if (!speechTextRef.current.trim() && combinedBlob.size > 0) {
           transcribeAudioBlob(combinedBlob);
         }
       };
@@ -213,6 +208,7 @@ export const AudioDictationModal: React.FC<Props> = ({
     } catch (err: any) {
       console.error('Error accessing microphone:', err);
       isRecordingRef.current = false;
+      setIsRecording(false);
       setErrorMessage(
         'ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตสิทธิ์การใช้งานไมโครโฟนในเบราว์เซอร์'
       );
@@ -220,37 +216,8 @@ export const AudioDictationModal: React.FC<Props> = ({
   };
 
   const stopRecording = () => {
-    isRecordingRef.current = false;
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (recognitionRef.current) {
-      try {
-        const rec = recognitionRef.current;
-        rec.onstart = null;
-        rec.onresult = null;
-        rec.onerror = null;
-        rec.onend = null;
-        rec.abort();
-      } catch (_) {}
-      recognitionRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && isRecording) {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch (_) {}
-      setIsRecording(false);
-    }
-
-    if (streamRef.current) {
-      try {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      } catch (_) {}
-      streamRef.current = null;
-    }
+    teardownAudioAndSpeech();
+    setIsRecording(false);
   };
 
   const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -286,12 +253,12 @@ export const AudioDictationModal: React.FC<Props> = ({
       }
 
       const data = await res.json();
-      setTranscribedText(data.text || '');
+      if (data.text) {
+        setTranscribedText((prev) => (prev ? `${prev} ${data.text}` : data.text));
+      }
     } catch (err: any) {
       console.error('Transcribe error:', err);
-      setErrorMessage(
-        err.message || 'เกิดข้อผิดพลาดในการถอดความเสียงด้วย gemini-3.5-transcribe'
-      );
+      setErrorMessage(err.message || 'ถอดความเสียงด้วย AI ไม่สำเร็จ');
     } finally {
       setIsTranscribing(false);
     }
@@ -333,7 +300,7 @@ export const AudioDictationModal: React.FC<Props> = ({
 
   const handleApply = () => {
     if (!transcribedText.trim()) return;
-    onInsertText(transcribedText.trim(), targetField, insertMode);
+    onInsertText(transcribedText.trim(), targetField, 'append');
     onClose();
   };
 
@@ -343,27 +310,43 @@ export const AudioDictationModal: React.FC<Props> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getFieldNameInThai = (fieldKey: string) => {
+    switch (fieldKey) {
+      case 'hpiDetails':
+        return 'ประวัติปัจจุบัน (HPI)';
+      case 'chiefComplaintOther':
+        return 'อาการสำคัญ';
+      case 'precipitatingFactors':
+        return 'ปัจจัยกระตุ้น';
+      case 'associatedSymptoms':
+        return 'อาการร่วม';
+      case 'psychiatricHistoryDetails':
+        return 'ประวัติจิตเวชเดิม';
+      default:
+        return 'ฟิลด์เป้าหมาย';
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs no-print">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-300">
         {/* Header */}
         <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center">
-              <Mic className="w-4 h-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+              <Mic className="w-4 h-4 text-blue-400" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                บันทึกเสียงและถอดความ (Speech-to-Text)
-                <span className="text-[10px] font-medium bg-slate-800 text-blue-300 px-2 py-0.5 rounded">
-                  Thai Dictation
-                </span>
-              </h3>
+              <h3 className="font-bold text-sm text-white">บันทึกเสียงและถอดความ (Thai Dictation)</h3>
+              <p className="text-[11px] text-slate-400">พูดเพื่อพิมพ์ หรือถอดความประวัติสกัดลงฟอร์มด้วย AI</p>
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded transition-colors cursor-pointer"
+            onClick={() => {
+              teardownAudioAndSpeech();
+              onClose();
+            }}
+            className="p-1 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -372,338 +355,173 @@ export const AudioDictationModal: React.FC<Props> = ({
         {/* Content */}
         <div className="p-5 space-y-4">
           {errorMessage && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Recording & Audio Control Box */}
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+          {/* Clean Single Mic Record Card */}
+          <div className="text-center">
             {isRecording ? (
-              <div className="flex flex-col items-center space-y-2 py-1">
-                <div className="flex items-center gap-2 text-sm font-bold text-red-600 font-mono">
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
-                  </span>
-                  <span>กำลังบันทึกเสียง... {formatTime(recordingTime)}</span>
-                </div>
-                <button
-                  onClick={stopRecording}
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>หยุดและถอดความ (Stop & Transcribe)</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-full py-4 px-6 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl shadow-md font-bold text-sm flex items-center justify-center gap-2 animate-pulse cursor-pointer transition-all"
+              >
+                <Square className="w-4 h-4 fill-current shrink-0" />
+                <span>กำลังบันทึกเสียง... {formatTime(recordingTime)} (แตะเพื่อหยุด)</span>
+              </button>
             ) : (
-              <div className="flex items-center justify-center py-1">
-                <button
-                  onClick={startRecording}
-                  disabled={isTranscribing}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-                >
-                  <Mic className="w-4 h-4" />
-                  <span>เริ่มบันทึกเสียงด้วยไมโครโฟน</span>
-                </button>
-              </div>
-            )}
-
-            {/* Audio Playback if recorded */}
-            {audioUrl && !isRecording && (
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-center gap-2">
-                <Volume2 className="w-4 h-4 text-slate-400" />
-                <audio controls src={audioUrl} className="h-8 max-w-xs" />
-                <button
-                  onClick={() => audioBlob && transcribeAudioBlob(audioBlob)}
-                  disabled={isTranscribing}
-                  className="text-xs text-blue-600 hover:underline flex items-center gap-1 cursor-pointer font-medium ml-2"
-                  title="ถอดความใหม่อีกครั้ง"
-                >
-                  <RotateCcw className="w-3 h-3" /> ถอดความใหม่
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={startRecording}
+                disabled={isTranscribing}
+                className="w-full py-3.5 px-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl shadow-md font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
+              >
+                <Mic className="w-4 h-4" />
+                <span>เริ่มพูดบันทึกเสียง</span>
+              </button>
             )}
           </div>
 
-          {/* Transcribed Text Preview / Edit Box */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+          {/* Transcribed Text Area */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                ข้อความที่ถอดความได้ (Transcribed Text)
+                <span>ข้อความถอดความ (ถอดความขณะพูด):</span>
               </label>
               {isTranscribing && (
-                <span className="text-xs text-blue-600 flex items-center gap-1 font-medium">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  กำลังประมวลผลถอดความเสียง...
+                <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  กำลังถอดความด้วย AI...
                 </span>
               )}
             </div>
             <textarea
               value={transcribedText}
               onChange={(e) => setTranscribedText(e.target.value)}
-              placeholder="ข้อความที่ถอดความจะแสดงที่นี่ สามารถแก้ไขเพิ่มเติมได้ตามต้องการ..."
+              placeholder='พูดใส่ไมโครโฟน ข้อความจะปรากฏที่นี่... หรือพิมพ์/วางข้อความ เช่น "ผู้ป่วยชายไทยอายุ 65 ปี"'
               rows={4}
-              className="w-full text-xs p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white text-slate-800 leading-relaxed font-sans"
+              className="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none bg-slate-50/50 text-slate-800 leading-relaxed font-sans"
             />
           </div>
 
-          {/* Action Tabs: AI Auto-Extract vs Manual Single-Field Insert */}
-          <div className="pt-2 border-t border-slate-200">
-            <div className="flex border-b border-slate-200 text-xs font-medium mb-3">
-              <button
-                type="button"
-                onClick={() => setActionTab('ai')}
-                className={`pb-2 px-3 flex items-center gap-1.5 border-b-2 font-bold cursor-pointer transition-all ${
-                  actionTab === 'ai'
-                    ? 'border-purple-600 text-purple-900 bg-purple-50/50 rounded-t-lg'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Brain className="w-3.5 h-3.5 text-purple-600" />
-                <span>วิเคราะห์ด้วย AI (AI Form Fill)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActionTab('manual')}
-                className={`pb-2 px-3 flex items-center gap-1.5 border-b-2 font-bold cursor-pointer transition-all ${
-                  actionTab === 'manual'
-                    ? 'border-blue-600 text-blue-900 bg-blue-50/50 rounded-t-lg'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                <span>ใส่ลงช่องเฉพาะ (Manual Field)</span>
-              </button>
-            </div>
-
-            {actionTab === 'ai' ? (
-              <div className="p-3 bg-purple-50/60 border border-purple-200/80 rounded-lg space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-purple-950 font-semibold">
-                    สกัดข้อมูล (เพศ, สถานภาพ, ระยะเวลา, CC, ปัจจัยกระตุ้น) ลงฟอร์มอัตโนมัติ
-                  </span>
-                  {!extractedPreview && (
-                    <button
-                      type="button"
-                      onClick={handleAnalyzeWithAI}
-                      disabled={!transcribedText.trim() || isExtracting || isTranscribing}
-                      className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 disabled:bg-purple-300 text-white text-xs font-bold rounded-lg shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
-                    >
-                      {isExtracting ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>กำลังวิเคราะห์...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-3.5 h-3.5" />
-                          <span>สกัดข้อมูลด้วย AI</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-
-                {extractionError && (
-                  <div className="p-2 bg-rose-50 border border-rose-200 rounded text-[11px] text-rose-700 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{extractionError}</span>
-                  </div>
-                )}
-
-                {extractedPreview && (
-                  <div className="p-2.5 bg-white border border-purple-300 rounded-md space-y-2 animate-fadeIn text-xs">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                      <span className="font-bold text-purple-900 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        ข้อมูลที่สกัดได้:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleApplyExtracted}
-                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow-2xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>นำเข้าฟอร์มทันที</span>
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 text-[11px]">
-                      {extractedPreview.gender && (
-                        <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
-                          เพศ: {extractedPreview.gender}
-                        </span>
-                      )}
-                      {extractedPreview.age && (
-                        <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
-                          อายุ: {extractedPreview.age} ปี
-                        </span>
-                      )}
-                      {extractedPreview.maritalStatus && (
-                        <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
-                          สถานภาพ: {extractedPreview.maritalStatus}
-                        </span>
-                      )}
-                      {extractedPreview.duration && (
-                        <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
-                          ระยะเวลา: {extractedPreview.duration}
-                        </span>
-                      )}
-                      {extractedPreview.suicideRisk && (
-                        <span className="bg-rose-100 text-rose-900 px-2 py-0.5 rounded font-bold">
-                          Suicide Risk: {extractedPreview.suicideRisk}
-                        </span>
-                      )}
-                    </div>
-
-                    {extractedPreview.chiefComplaint && extractedPreview.chiefComplaint.length > 0 && (
-                      <div className="text-[11px]">
-                        <span className="text-slate-500 font-medium">อาการสำคัญ:</span>{' '}
-                        <span className="font-semibold text-slate-800">{extractedPreview.chiefComplaint.join(', ')}</span>
-                      </div>
-                    )}
-
-                    {extractedPreview.precipitatingFactors && extractedPreview.precipitatingFactors.length > 0 && (
-                      <div className="text-[11px]">
-                        <span className="text-slate-500 font-medium">ปัจจัยกระตุ้น:</span>{' '}
-                        <span className="font-semibold text-slate-800">{extractedPreview.precipitatingFactors.join(', ')}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    ช่องข้อมูลที่จะนำข้อความไปใส่:
-                  </label>
-                  <select
-                    value={targetField}
-                    onChange={(e) => setTargetField(e.target.value)}
-                    className="w-full text-xs p-1.5 border border-slate-300 rounded bg-white focus:ring-2 focus:ring-blue-600"
-                  >
-                    <option value="hpiDetails">B. รายละเอียดประวัติปัจจุบัน (HPI Details)</option>
-                    <option value="chiefComplaintOther">B. อาการสำคัญอื่นๆ (CC Other)</option>
-                    <option value="precipitatingFactors">B. ปัจจัยกระตุ้น (Precipitating)</option>
-                    <option value="associatedSymptoms">B. อาการร่วม (Associated Symptoms)</option>
-                    <option value="psychiatricHistoryDetails">C. ประวัติจิตเวชเดิม (Psych Details)</option>
-                    <option value="delusionDetails">D. รายละเอียด Delusion (Thought Content)</option>
-                    <option value="safetyPlan">E. Safety Plan (แผนความปลอดภัย)</option>
-                    <option value="medicationDetails">K. รายละเอียดคำสั่งยา (Medication)</option>
-                    <option value="concernsDetail">L. ข้อกังวลของผู้ป่วย/ญาติ</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    รูปแบบการใส่ข้อความ:
-                  </label>
-                  <div className="flex items-center gap-3 pt-1 text-xs">
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="insertMode"
-                        value="append"
-                        checked={insertMode === 'append'}
-                        onChange={() => setInsertMode('append')}
-                        className="text-blue-600"
-                      />
-                      <span>ต่อท้ายเดิม (Append)</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="insertMode"
-                        value="replace"
-                        checked={insertMode === 'replace'}
-                        onChange={() => setInsertMode('replace')}
-                        className="text-blue-600"
-                      />
-                      <span>แทนที่เดิม (Replace)</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <button
-            onClick={onClose}
-            className="px-3.5 py-1.5 text-xs text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-          >
-            ยกเลิก
-          </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-                  navigator.clipboard.writeText(transcribedText);
-                } else {
-                  const ta = document.createElement('textarea');
-                  ta.value = transcribedText;
-                  ta.style.position = 'fixed';
-                  ta.style.opacity = '0';
-                  document.body.appendChild(ta);
-                  ta.focus();
-                  ta.select();
-                  try {
-                    document.execCommand('copy');
-                  } catch (_) {}
-                  document.body.removeChild(ta);
-                }
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
-              disabled={!transcribedText.trim()}
-              className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                copied
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                  : 'border-slate-300 hover:bg-slate-100 disabled:opacity-40 text-slate-700'
-              }`}
+          {/* Select target field if inserting text */}
+          <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl text-xs">
+            <span className="text-slate-600 font-semibold">ช่องที่จะใส่ข้อความ:</span>
+            <select
+              value={targetField}
+              onChange={(e) => setTargetField(e.target.value)}
+              className="text-xs p-1 px-2 border border-slate-300 rounded-lg bg-white font-medium focus:ring-2 focus:ring-blue-600"
             >
-              {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกข้อความ'}
-            </button>
-            {actionTab === 'ai' ? (
-              extractedPreview ? (
+              <option value="hpiDetails">B. ประวัติปัจจุบัน (HPI)</option>
+              <option value="chiefComplaintOther">B. อาการสำคัญอื่นๆ</option>
+              <option value="precipitatingFactors">B. ปัจจัยกระตุ้น</option>
+              <option value="associatedSymptoms">B. อาการร่วม</option>
+              <option value="psychiatricHistoryDetails">C. ประวัติจิตเวชเดิม</option>
+            </select>
+          </div>
+
+          {/* AI Extraction Preview Card (If extracted) */}
+          {extractedPreview && (
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-2 text-xs animate-fadeIn">
+              <div className="flex items-center justify-between font-bold text-purple-900 border-b border-purple-200 pb-1">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  สกัดข้อมูลสำเร็จ:
+                </span>
                 <button
+                  type="button"
                   onClick={handleApplyExtracted}
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-2xs cursor-pointer flex items-center gap-1"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>นำเข้าฟอร์มทันที</span>
                 </button>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 text-[11px]">
+                {extractedPreview.gender && (
+                  <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
+                    เพศ: {extractedPreview.gender}
+                  </span>
+                )}
+                {extractedPreview.age && (
+                  <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
+                    อายุ: {extractedPreview.age} ปี
+                  </span>
+                )}
+                {extractedPreview.maritalStatus && (
+                  <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
+                    สถานภาพ: {extractedPreview.maritalStatus}
+                  </span>
+                )}
+                {extractedPreview.duration && (
+                  <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
+                    ระยะเวลา: {extractedPreview.duration}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {extractionError && (
+            <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{extractionError}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Action Buttons */}
+        <div className="px-5 py-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                navigator.clipboard.writeText(transcribedText);
+              }
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            disabled={!transcribedText.trim()}
+            className="px-3 py-1.5 border border-slate-300 hover:bg-white disabled:opacity-40 text-slate-700 text-xs font-semibold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+          >
+            <Copy className="w-3.5 h-3.5 text-slate-500" />
+            <span>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAnalyzeWithAI}
+              disabled={!transcribedText.trim() || isExtracting || isTranscribing}
+              className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 disabled:opacity-40 text-white text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+            >
+              {isExtracting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังสกัด...</span>
+                </>
               ) : (
-                <button
-                  onClick={handleAnalyzeWithAI}
-                  disabled={!transcribedText.trim() || isExtracting || isTranscribing}
-                  className="px-4 py-1.5 bg-purple-700 hover:bg-purple-800 disabled:bg-purple-300 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  {isExtracting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Wand2 className="w-3.5 h-3.5" />
-                  )}
-                  <span>สกัดข้อมูลเข้าฟอร์มด้วย AI</span>
-                </button>
-              )
-            ) : (
-              <button
-                onClick={handleApply}
-                disabled={!transcribedText.trim() || isTranscribing}
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>นำข้อความไปใส่ในช่อง</span>
-              </button>
-            )}
+                <>
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>สกัดเป็นฟอร์มด้วย AI</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={!transcribedText.trim() || isTranscribing}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>ใส่ลงใน{getFieldNameInThai(targetField)}</span>
+            </button>
           </div>
         </div>
       </div>

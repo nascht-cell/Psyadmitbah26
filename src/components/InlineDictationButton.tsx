@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, Square, Volume2 } from 'lucide-react';
+import { Mic, Square, Volume2, AlertCircle } from 'lucide-react';
 
 interface InlineDictationButtonProps {
   onTranscript: (text: string) => void;
@@ -15,8 +15,8 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
   const [livePreview, setLivePreview] = useState<string>('');
 
   const recognitionRef = useRef<any>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const fullTranscriptRef = useRef<string>('');
-  const hasCommittedRef = useRef<boolean>(false);
   const isListeningRef = useRef<boolean>(false);
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
@@ -29,11 +29,29 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
     }
 
     return () => {
-      cleanupRecognition();
+      stopAndCleanup();
     };
   }, []);
 
-  const cleanupRecognition = () => {
+  const stopAndCleanup = useCallback(() => {
+    isListeningRef.current = false;
+
+    // 1. Commit captured text if any
+    const textToCommit = fullTranscriptRef.current.trim();
+    if (textToCommit.length > 0) {
+      onTranscriptRef.current(textToCommit);
+      fullTranscriptRef.current = '';
+    }
+
+    // 2. Stop audio stream tracks
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (_) {}
+      mediaStreamRef.current = null;
+    }
+
+    // 3. Abort speech recognition instance
     if (recognitionRef.current) {
       try {
         const rec = recognitionRef.current;
@@ -45,36 +63,36 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
       } catch (_) {}
       recognitionRef.current = null;
     }
-  };
 
-  const commitTranscript = useCallback(() => {
-    const textToCommit = fullTranscriptRef.current.trim();
-    if (!hasCommittedRef.current && textToCommit.length > 0) {
-      hasCommittedRef.current = true;
-      onTranscriptRef.current(textToCommit);
-    }
-  }, []);
-
-  const stopListening = useCallback(() => {
-    isListeningRef.current = false;
-    commitTranscript();
-    cleanupRecognition();
     setIsListening(false);
     setLivePreview('');
-  }, [commitTranscript]);
+  }, []);
 
-  const startListening = () => {
+  const startListening = async () => {
+    // Teardown any previous active audio/recognition instance first
+    stopAndCleanup();
+
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
 
-    // 1. Force cleanup of any previous recognition instance
-    cleanupRecognition();
+    if (!SpeechRecognition) {
+      setUnsupported(true);
+      return;
+    }
 
     fullTranscriptRef.current = '';
-    hasCommittedRef.current = false;
     isListeningRef.current = true;
     setLivePreview('');
+
+    // Request active audio hardware stream first to unlock Chrome/Safari media permissions
+    try {
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+      }
+    } catch (err) {
+      console.warn('Microphone stream error:', err);
+    }
 
     try {
       const recognition = new SpeechRecognition();
@@ -108,17 +126,16 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech Recognition notice:', event.error);
+        console.warn('Speech recognition notice:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          stopListening();
-          alert('ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตสิทธิ์ในเบราว์เซอร์');
+          stopAndCleanup();
+          alert('ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตสิทธิ์ใช้งานไมโครโฟนในเบราว์เซอร์');
         }
       };
 
       recognition.onend = () => {
-        commitTranscript();
-        // If user is still in listening mode, Chrome auto-closed due to silence, try restart
-        if (isListeningRef.current) {
+        // If user didn't press Stop, auto-restart if Chrome auto-closed due to silence
+        if (isListeningRef.current && recognitionRef.current) {
           try {
             recognition.start();
             return;
@@ -129,25 +146,9 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
       };
 
       recognitionRef.current = recognition;
-
-      // Start recognition with small safety fallback for browser state transition
-      try {
-        recognition.start();
-      } catch (err) {
-        console.warn('Initial recognition.start() failed, retrying after reset...', err);
-        setTimeout(() => {
-          if (isListeningRef.current && recognitionRef.current) {
-            try {
-              recognitionRef.current.start();
-            } catch (e) {
-              console.error('Retry speech recognition failed:', e);
-              setIsListening(false);
-            }
-          }
-        }, 150);
-      }
+      recognition.start();
     } catch (err) {
-      console.warn('Failed to initialize SpeechRecognition:', err);
+      console.error('Failed to start SpeechRecognition:', err);
       setIsListening(false);
       setLivePreview('');
     }
@@ -160,7 +161,7 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
     }
 
     if (isListening) {
-      stopListening();
+      stopAndCleanup();
     } else {
       startListening();
     }
@@ -169,21 +170,21 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
   if (unsupported) return null;
 
   return (
-    <div className="inline-flex items-center gap-1.5 relative">
+    <div className="inline-flex items-center gap-1.5 relative shrink-0">
       <button
         type="button"
         onClick={toggleListening}
-        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all select-none cursor-pointer active:scale-95 shadow-2xs ${
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all select-none cursor-pointer active:scale-95 shadow-2xs ${
           isListening
             ? 'bg-rose-600 border-rose-600 text-white animate-pulse'
             : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 hover:text-blue-800'
         } ${className}`}
-        title={isListening ? 'แตะเพื่อหยุดบันทึกและแทรกข้อความ' : 'พูดเพื่อบันทึกข้อความภาษาไทย (Web Speech API)'}
+        title={isListening ? 'กดเพื่อหยุดและพิมพ์ข้อความลงฟิลด์' : 'กดแล้วพูดเพื่อพิมพ์ข้อความภาษาไทย'}
       >
         {isListening ? (
           <>
             <Square className="w-3 h-3 fill-current shrink-0" />
-            <span>หยุดพูด (บันทึกข้อความ)</span>
+            <span>หยุดพูด</span>
           </>
         ) : (
           <>
@@ -193,11 +194,11 @@ export const InlineDictationButton: React.FC<InlineDictationButtonProps> = ({
         )}
       </button>
 
-      {/* Live transcript feedback indicator while recording */}
-      {isListening && livePreview && (
-        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5 max-w-[200px] truncate animate-fadeIn">
-          <Volume2 className="w-2.5 h-2.5 text-amber-600 shrink-0" />
-          <span className="truncate italic font-normal">"{livePreview}"</span>
+      {/* Live transcript preview indicator */}
+      {isListening && (
+        <span className="inline-flex items-center gap-1 text-[11px] text-amber-900 bg-amber-50 border border-amber-300 rounded-md px-2 py-0.5 max-w-[220px] truncate animate-fadeIn">
+          <Volume2 className="w-3 h-3 text-amber-600 shrink-0 animate-pulse" />
+          <span className="truncate italic">{livePreview || 'กำลังฟังเสียงพูด...'}</span>
         </span>
       )}
     </div>
