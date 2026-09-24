@@ -16,7 +16,6 @@ import {
   Sparkles,
   Printer,
   History,
-  Mic,
   RefreshCw,
   Check,
 } from 'lucide-react';
@@ -33,9 +32,6 @@ import {
 // Code-split heavy modals and printable components for ultra-fast initial page load
 const PdfPreviewModal = React.lazy(() =>
   import('./components/PdfPreviewModal').then(m => ({ default: m.PdfPreviewModal }))
-);
-const AudioDictationModal = React.lazy(() =>
-  import('./components/AudioDictationModal').then(m => ({ default: m.AudioDictationModal }))
 );
 const AssessmentPdfDocument = React.lazy(() =>
   import('./components/AssessmentPdfDocument').then(m => ({ default: m.AssessmentPdfDocument }))
@@ -55,8 +51,6 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [viewMode, setViewMode] = useState<'wizard' | 'full'>('wizard');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [isDictationModalOpen, setIsDictationModalOpen] = useState(false);
-  const [dictationTargetField, setDictationTargetField] = useState('hpiDetails');
   const [isSavingAndExporting, setIsSavingAndExporting] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
@@ -415,33 +409,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Audio dictation text insertion
-  const handleInsertTranscribedText = (
-    text: string,
-    targetField: string,
-    mode: 'append' | 'replace'
-  ) => {
-    setFormData((prev: any) => {
-      const currentVal = prev[targetField] || '';
-      const newVal =
-        mode === 'append'
-          ? currentVal
-            ? `${currentVal}\n${text}`
-            : text
-          : text;
-      return {
-        ...prev,
-        [targetField]: newVal,
-      };
-    });
-
-    showToast(
-      'success',
-      'แทรกข้อความจากเสียงพูดสำเร็จ',
-      `ถอดความเสียงด้วย gemini-3.5-transcribe และใส่ใน ${targetField} เรียบร้อยแล้ว`
-    );
-  };
-
   // AI Form Extraction handler for speech/paragraph input
   const handleApplyExtractedData = (extracted: any) => {
     if (!extracted || typeof extracted !== 'object') return;
@@ -485,11 +452,6 @@ export default function App() {
       'สกัดข้อมูลเพศ, สถานภาพ, ระยะเวลา, อาการสำคัญ และปัจจัยกระตุ้น ลงฟอร์มเรียบร้อยแล้ว'
     );
   };
-
-  const openDictationForField = useCallback((field: string) => {
-    setDictationTargetField(field);
-    setIsDictationModalOpen(true);
-  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-800 w-full max-w-full overflow-x-hidden">
@@ -602,7 +564,6 @@ export default function App() {
             onChange={handleFormChange}
             errors={errors}
             onBlurField={handleBlurField}
-            onOpenDictation={openDictationForField}
             onApplyExtractedData={handleApplyExtractedData}
             onApplyWnlMse={handleApplyWnlMse}
             onApplyWnlPhysical={handleApplyWnlPhysical}
@@ -743,17 +704,6 @@ export default function App() {
             data={formData}
           />
         )}
-
-        {isDictationModalOpen && (
-          <AudioDictationModal
-            isOpen={isDictationModalOpen}
-            onClose={() => setIsDictationModalOpen(false)}
-            onInsertText={handleInsertTranscribedText}
-            onApplyExtractedData={handleApplyExtractedData}
-            defaultTargetField={dictationTargetField}
-            initialText={(formData[dictationTargetField as keyof PsychiatricAssessment] as string) || formData.hpiDetails || ''}
-          />
-        )}
       </Suspense>
 
       {/* In-app Reset Form Confirmation Modal */}
@@ -785,22 +735,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Floating Action Button (FAB) for AI Voice Dictation */}
-      <div className="fixed bottom-24 right-6 lg:right-8 z-40 no-print flex flex-col items-end gap-2 group">
-        <button
-          onClick={() => openDictationForField('hpiDetails')}
-          className="w-14 h-14 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 active:from-red-700 active:to-rose-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 cursor-pointer relative border-2 border-white focus:outline-none focus:ring-4 focus:ring-rose-300/50"
-          title="ถอดความเสียงด้วย AI (gemini-3.5-transcribe)"
-        >
-          <Mic className="w-6 h-6 text-white shrink-0" />
-          {/* Pulsing ring indicator */}
-          <span className="absolute -inset-1 rounded-full border-2 border-red-500 animate-ping opacity-25 pointer-events-none" />
-        </button>
-        <div className="bg-slate-900/90 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-slate-700/60 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-          ถอดความเสียงด้วย AI
-        </div>
-      </div>
 
       <OfflineIndicator />
     </div>

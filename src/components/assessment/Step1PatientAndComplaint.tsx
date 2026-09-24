@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { User, Activity, Calendar, Clock, CheckSquare, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
-import { InlineDictationButton } from '../InlineDictationButton';
 import { DebouncedInput } from './DebouncedInput';
 import { DebouncedTextarea } from './DebouncedTextarea';
 
@@ -10,7 +9,6 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
   onChange,
   errors,
   onBlurField,
-  onOpenDictation,
   onApplyExtractedData,
   toggleArrayItem,
   handleDurationChange,
@@ -643,12 +641,6 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
             <div className="mt-2.5 space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-slate-500 font-medium">ระบุอาการสำคัญอื่นๆ เพิ่มเติม (ถ้ามี)</span>
-                <InlineDictationButton
-                  onTranscript={text => {
-                    const existing = data.chiefComplaintOther || '';
-                    onChange({ chiefComplaintOther: existing ? `${existing} ${text}` : text });
-                  }}
-                />
               </div>
               <DebouncedInput
                 type="text"
@@ -787,12 +779,6 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
                   รายละเอียดประวัติปัจจุบันเพิ่มเติม (HPI Details)
                 </label>
-                <InlineDictationButton
-                  onTranscript={text => {
-                    const existing = data.hpiDetails || '';
-                    onChange({ hpiDetails: existing ? `${existing} ${text}` : text });
-                  }}
-                />
                 <button
                   type="button"
                   disabled={isQuickExtracting || !data.hpiDetails?.trim()}

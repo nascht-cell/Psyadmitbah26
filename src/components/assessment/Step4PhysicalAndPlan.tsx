@@ -1,7 +1,6 @@
 import React from 'react';
 import { Stethoscope, Brain, Check, FlaskConical, Pill, FileCheck, CheckSquare, Sparkles } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
-import { InlineDictationButton } from '../InlineDictationButton';
 
 const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
   data,
@@ -860,12 +859,6 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
                     <label className="block text-xs font-medium text-slate-700">
                       ระบุชื่อยา / Dose คร่าวๆ:
                     </label>
-                    <InlineDictationButton
-                      onTranscript={text => {
-                        const existing = data.medicationDetails || '';
-                        onChange({ medicationDetails: existing ? `${existing} ${text}` : text });
-                      }}
-                    />
                   </div>
 
                   {/* Quick Medication Chips */}
