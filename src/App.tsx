@@ -409,49 +409,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // AI Form Extraction handler for speech/paragraph input
-  const handleApplyExtractedData = (extracted: any) => {
-    if (!extracted || typeof extracted !== 'object') return;
-
-    setFormData((prev) => {
-      const updated = { ...prev };
-
-      if (extracted.gender) updated.gender = extracted.gender;
-      if (extracted.age) updated.age = String(extracted.age);
-      if (extracted.maritalStatus) updated.maritalStatus = extracted.maritalStatus;
-      if (extracted.duration) updated.duration = extracted.duration;
-
-      if (extracted.chiefComplaint && Array.isArray(extracted.chiefComplaint) && extracted.chiefComplaint.length > 0) {
-        updated.chiefComplaint = Array.from(new Set([...(prev.chiefComplaint || []), ...extracted.chiefComplaint]));
-      }
-
-      if (extracted.precipitatingFactors && Array.isArray(extracted.precipitatingFactors) && extracted.precipitatingFactors.length > 0) {
-        updated.precipitatingFactors = Array.from(new Set([...(prev.precipitatingFactors || []), ...extracted.precipitatingFactors]));
-      }
-
-      if (extracted.associatedSymptoms && Array.isArray(extracted.associatedSymptoms) && extracted.associatedSymptoms.length > 0) {
-        updated.associatedSymptoms = Array.from(new Set([...(prev.associatedSymptoms || []), ...extracted.associatedSymptoms]));
-      }
-
-      if (extracted.hpiDetails) {
-        updated.hpiDetails = prev.hpiDetails ? `${prev.hpiDetails}\n${extracted.hpiDetails}` : extracted.hpiDetails;
-      }
-
-      if (extracted.thoughtContent && Array.isArray(extracted.thoughtContent) && extracted.thoughtContent.length > 0) {
-        updated.thoughtContent = Array.from(new Set([...(prev.thoughtContent || []), ...extracted.thoughtContent]));
-      }
-
-      if (extracted.suicideRisk) updated.suicideRisk = extracted.suicideRisk;
-
-      return updated;
-    });
-
-    showToast(
-      'success',
-      'วิเคราะห์และนำเข้าฟอร์มสำเร็จด้วย AI',
-      'สกัดข้อมูลเพศ, สถานภาพ, ระยะเวลา, อาการสำคัญ และปัจจัยกระตุ้น ลงฟอร์มเรียบร้อยแล้ว'
-    );
-  };
+  // WNL (Within Normal Limits) preset appliers for MSE
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-800 w-full max-w-full overflow-x-hidden">
@@ -564,7 +522,6 @@ export default function App() {
             onChange={handleFormChange}
             errors={errors}
             onBlurField={handleBlurField}
-            onApplyExtractedData={handleApplyExtractedData}
             onApplyWnlMse={handleApplyWnlMse}
             onApplyWnlPhysical={handleApplyWnlPhysical}
             currentStep={currentStep}

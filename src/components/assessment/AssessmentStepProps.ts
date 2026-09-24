@@ -5,7 +5,6 @@ export interface AssessmentStepProps {
   onChange: (updated: Partial<PsychiatricAssessment>) => void;
   errors: Record<string, string>;
   onBlurField?: (fieldKey: string, value: any) => void;
-  onApplyExtractedData?: (extractedData: Partial<PsychiatricAssessment>) => void;
   onApplyWnlMse?: () => void;
   onApplyWnlPhysical?: () => void;
   toggleArrayItem: (field: keyof PsychiatricAssessment, item: string) => void;
