@@ -475,6 +475,11 @@ export const AudioDictationModal: React.FC<Props> = ({
                           เพศ: {extractedPreview.gender}
                         </span>
                       )}
+                      {extractedPreview.age && (
+                        <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
+                          อายุ: {extractedPreview.age} ปี
+                        </span>
+                      )}
                       {extractedPreview.maritalStatus && (
                         <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-medium">
                           สถานภาพ: {extractedPreview.maritalStatus}

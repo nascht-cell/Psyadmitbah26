@@ -450,6 +450,7 @@ export default function App() {
       const updated = { ...prev };
 
       if (extracted.gender) updated.gender = extracted.gender;
+      if (extracted.age) updated.age = String(extracted.age);
       if (extracted.maritalStatus) updated.maritalStatus = extracted.maritalStatus;
       if (extracted.duration) updated.duration = extracted.duration;
 
