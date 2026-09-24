@@ -21,6 +21,7 @@ interface Props {
   onInsertText: (text: string, targetField: string, mode: 'append' | 'replace') => void;
   onApplyExtractedData?: (extractedData: Partial<PsychiatricAssessment>) => void;
   defaultTargetField?: string;
+  initialText?: string;
 }
 
 export const AudioDictationModal: React.FC<Props> = ({
@@ -29,11 +30,12 @@ export const AudioDictationModal: React.FC<Props> = ({
   onInsertText,
   onApplyExtractedData,
   defaultTargetField = 'hpiDetails',
+  initialText = '',
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcribedText, setTranscribedText] = useState('');
+  const [transcribedText, setTranscribedText] = useState(initialText);
   const [targetField, setTargetField] = useState(defaultTargetField);
   const [insertMode, setInsertMode] = useState<'append' | 'replace'>('append');
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -55,8 +57,13 @@ export const AudioDictationModal: React.FC<Props> = ({
   const speechTextRef = useRef<string>('');
 
   useEffect(() => {
-    setTargetField(defaultTargetField);
-  }, [defaultTargetField]);
+    if (isOpen) {
+      setTargetField(defaultTargetField);
+      if (initialText) {
+        setTranscribedText(initialText);
+      }
+    }
+  }, [isOpen, defaultTargetField, initialText]);
 
   useEffect(() => {
     return () => {

@@ -41,13 +41,16 @@ function fallbackExtractThaiClinicalText(text: string) {
     extracted.gender = 'หญิง';
   }
 
-  // Age
-  const ageMatch = text.match(/อายุ\s*(\d{1,3})/i) || text.match(/(\d{1,3})\s*ปี/i);
+  // Age (e.g. "ผู้ป่วยชายไทยอายุ 65 ปี", "อายุ 65", "65 ปี")
+  const ageMatch =
+    text.match(/อายุ\s*(\d{1,3})/i) ||
+    text.match(/ผู้ป่วย(?:\w+)?\s*(\d{1,3})\s*ปี/i) ||
+    text.match(/(\d{1,3})\s*ปี/i);
   if (ageMatch) {
     extracted.age = ageMatch[1];
   }
 
-  // Duration
+  // Duration (e.g. "3 วัน", "2 สัปดาห์", "1 เดือน", "เป็นมา 2 ปี") - ignore "อายุ 65 ปี"
   if (
     text.includes('สามวัน') ||
     text.includes('3 วัน') ||
@@ -61,8 +64,12 @@ function fallbackExtractThaiClinicalText(text: string) {
     extracted.duration = '1-4 สัปดาห์';
   } else if (text.includes('เดือน')) {
     extracted.duration = '1-6 เดือน';
-  } else if (text.includes('ปี')) {
-    extracted.duration = 'มากกว่า 1 ปี';
+  } else {
+    // Check if "ปี" refers to illness duration, e.g. "ป่วยมา 2 ปี", not "อายุ 65 ปี"
+    const hasIllnessYear = /(?:ป่วย|เป็น|อาการ|รักษา|มา|ประมาณ)\s*\d+\s*ปี/i.test(text);
+    if (hasIllnessYear) {
+      extracted.duration = 'มากกว่า 1 ปี';
+    }
   }
 
   // Chief Complaint
@@ -220,9 +227,10 @@ app.post('/api/extract-assessment', async (req, res) => {
 
 กฎเหล็กเคร่งครัดที่สุด:
 1. สกัดเฉพาะข้อมูลที่มีอยู่ในข้อความบรรยายเท่านั้น
-2. ห้ามมโน ห้ามคิดหรือแต่งข้อมูลขึ้นมาเองเด็ดขาด! หากข้อความไม่ได้กล่าวถึงฟิลด์ใด ให้ใส่เป็น null
-3. หากผู้ป่วยมีอาการหลายอย่าง ให้เลือกตัวเลือกทั้งหมดที่ตรงกับข้อความ
-4. ระยะเวลา (duration): แปลงจากข้อความ เช่น "3 วัน" -> "น้อยกว่า 1 สัปดาห์"
+2. หากข้อความสั้นมาก เช่น "ผู้ป่วยชายไทยอายุ 65 ปี" ให้สกัดข้อมูลเท่าที่มี เช่น gender="ชาย", age="65" ส่วนฟิลด์ที่ไม่ปรากฏในข้อความให้ใส่เป็น null
+3. สังเกตอายุของผู้ป่วยให้ดี เช่น "อายุ 65 ปี" คือ age="65" (อย่าสับสนว่า 65 ปีเป็น duration ระยะเวลาการป่วย)
+4. หากผู้ป่วยมีอาการหลายอย่าง ให้เลือกตัวเลือกทั้งหมดที่ตรงกับข้อความ
+5. ระยะเวลา (duration): แปลงจากข้อความ เช่น "3 วัน" -> "น้อยกว่า 1 สัปดาห์"
 
 ตัวเลือกมาตรฐานสำหรับแต่ละฟิลด์:
 - gender: "ชาย", "หญิง"

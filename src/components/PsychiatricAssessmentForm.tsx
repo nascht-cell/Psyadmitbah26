@@ -12,6 +12,7 @@ interface Props {
   errors: Record<string, string>;
   onBlurField?: (field: string, value: any) => void;
   onOpenDictation?: (field: string) => void;
+  onApplyExtractedData?: (extractedData: Partial<PsychiatricAssessment>) => void;
   collapsedSections?: Record<string, boolean>;
   onToggleSection?: (sectionKey: string) => void;
   onApplyWnlMse?: () => void;
@@ -55,6 +56,7 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
   errors,
   onBlurField,
   onOpenDictation,
+  onApplyExtractedData,
   onApplyWnlMse,
   onApplyWnlPhysical,
   currentStep = 1,
@@ -158,6 +160,7 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
     errors,
     onBlurField,
     onOpenDictation,
+    onApplyExtractedData,
     onApplyWnlMse,
     onApplyWnlPhysical,
     toggleArrayItem,
