@@ -603,7 +603,6 @@ export default function App() {
             errors={errors}
             onBlurField={handleBlurField}
             onOpenDictation={openDictationForField}
-            onApplyExtractedData={handleApplyExtractedData}
             onApplyWnlMse={handleApplyWnlMse}
             onApplyWnlPhysical={handleApplyWnlPhysical}
             currentStep={currentStep}
@@ -751,7 +750,6 @@ export default function App() {
             onInsertText={handleInsertTranscribedText}
             onApplyExtractedData={handleApplyExtractedData}
             defaultTargetField={dictationTargetField}
-            initialText={(formData[dictationTargetField as keyof PsychiatricAssessment] as string) || formData.hpiDetails || ''}
           />
         )}
       </Suspense>
