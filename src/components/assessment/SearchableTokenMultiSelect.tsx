@@ -53,6 +53,9 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      if (!searchTerm.trim()) {
+        return; // Don't trigger if empty
+      }
       if (filteredOptions.length > 0) {
         // Toggle the first matching filtered option
         const target = filteredOptions[0].id;
@@ -86,10 +89,10 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
       {/* Searchable input box with integrated removable selected tokens */}
       <div
         onClick={() => inputRef.current?.focus()}
-        className={`min-h-[40px] w-full bg-white border rounded-lg p-1.5 flex flex-wrap items-center gap-1.5 transition-all cursor-text ${
+        className={`min-h-[44px] w-full clay-input p-2 flex flex-wrap items-center gap-1.5 transition-all cursor-text ${
           isFocused
-            ? 'border-blue-500 ring-2 ring-blue-100 bg-white'
-            : 'border-slate-300 hover:border-slate-400 bg-slate-50/50'
+            ? 'ring-4 ring-blue-500/25 border-blue-500 bg-white'
+            : 'hover:border-slate-400'
         }`}
       >
         <Search className="w-3.5 h-3.5 text-slate-400 ml-1 shrink-0" />
@@ -101,7 +104,7 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
           return (
             <span
               key={item}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-md border transition-all animate-fadeIn shrink-0 select-none ${tokenColorClass}`}
+              className="clay-token inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold transition-all animate-fadeIn shrink-0 select-none"
             >
               <span className="truncate max-w-[220px]">{label}</span>
               <button
@@ -109,9 +112,9 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
                 data-testid="item-delete-trigger"
                 aria-label={`ลบ ${label}`}
                 onClick={e => handleRemoveToken(e, item)}
-                className="w-3.5 h-3.5 rounded hover:bg-black/10 flex items-center justify-center text-slate-500 hover:text-slate-900 cursor-pointer transition-colors shrink-0"
+                className="clay-token-delete-btn w-4 h-4 hover:bg-blue-300/60 flex items-center justify-center text-blue-800 hover:text-blue-950 cursor-pointer shrink-0"
               >
-                <X className="w-3 h-3 stroke-[2.5]" />
+                <X className="w-3 h-3 stroke-[3]" />
               </button>
             </span>
           );
@@ -127,7 +130,7 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
           placeholder={selected.length === 0 ? placeholder : searchPlaceholder}
-          className="flex-1 min-w-[130px] bg-transparent text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none py-1 px-1"
+          className="flex-1 min-w-[130px] bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none py-1 px-1 font-medium"
         />
 
         {searchTerm && (
@@ -147,7 +150,7 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
 
       {/* Quick clickable choice pills / tokens */}
       {showChipsList && (
-        <div className="flex flex-wrap gap-1.5 pt-0.5">
+        <div className="flex flex-wrap gap-1.5 pt-1">
           {filteredOptions.map(opt => {
             const isSelected = selected.includes(opt.id);
             return (
@@ -160,10 +163,10 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
                     inputRef.current.focus();
                   }
                 }}
-                className={`text-xs px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                className={`text-xs px-3 py-1.5 transition-all flex items-center gap-1.5 cursor-pointer select-none ${
                   isSelected
-                    ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    ? 'clay-pill-active'
+                    : 'clay-pill-inactive'
                 }`}
               >
                 {isSelected ? (
@@ -175,7 +178,7 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
                 {opt.subtext && (
                   <span
                     className={`text-[10px] ${
-                      isSelected ? 'text-blue-100' : 'text-slate-400'
+                      isSelected ? 'text-blue-100 font-normal' : 'text-slate-500 font-normal'
                     }`}
                   >
                     ({opt.subtext})
@@ -195,7 +198,7 @@ export const SearchableTokenMultiSelect: React.FC<SearchableTokenMultiSelectProp
                   inputRef.current.focus();
                 }
               }}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-dashed border-blue-400 text-blue-700 bg-blue-50/70 hover:bg-blue-100 flex items-center gap-1 cursor-pointer font-medium"
+              className="clay-pill-inactive text-xs px-3 py-1.5 border-dashed border-blue-400 text-blue-700 bg-blue-50/70 hover:bg-blue-100 flex items-center gap-1 cursor-pointer font-bold"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>เพิ่ม "{searchTerm.trim()}"</span>

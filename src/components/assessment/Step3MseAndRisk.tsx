@@ -15,12 +15,12 @@ const Step3MseAndRiskComponent: React.FC<AssessmentStepProps> = ({
   return (
     <div className="space-y-6">
       {/* SECTION D: Mental Status Examination (Mirrors A4 Document Page 2 Box 1) */}
-      <section id="section-d" className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="px-6 py-3.5 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+      <section id="section-d" className="clay-surface overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex flex-wrap items-center justify-between gap-3 rounded-t-[26px]">
           <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <div className="flex items-center gap-2">
-              <Brain className="w-5 h-5 text-blue-600" />
-              <h3 className="font-bold text-slate-900 text-base">
+              <Brain className="w-5 h-5 text-blue-200" />
+              <h3 className="font-bold text-white text-base">
                 D. Mental Status Examination (การตรวจสภาพจิต)
               </h3>
             </div>
@@ -28,7 +28,7 @@ const Step3MseAndRiskComponent: React.FC<AssessmentStepProps> = ({
               <button
                 type="button"
                 onClick={onApplyWnlMse}
-                className="text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="text-xs text-blue-900 bg-blue-100 hover:bg-white border border-blue-200 font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 title="ตั้งค่า MSE ทั้งหมดเป็นปกติ (Normal / WNL)"
               >
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
@@ -36,7 +36,7 @@ const Step3MseAndRiskComponent: React.FC<AssessmentStepProps> = ({
               </button>
             )}
           </div>
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">การประเมินสภาพจิต 9 มิติ (ปุ่มสีแดง/ส้ม = พบความผิดปกติ)</span>
+          <span className="text-xs text-blue-100 font-medium hidden sm:inline">การประเมินสภาพจิต 9 มิติ</span>
         </div>
 
         <div className="p-6 space-y-5">
@@ -384,17 +384,17 @@ const Step3MseAndRiskComponent: React.FC<AssessmentStepProps> = ({
       </section>
 
       {/* SECTION E: Safety & Risk Assessment (Mirrors A4 Document Page 2 Box 2) */}
-      <section id="section-e" className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="px-6 py-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-red-600" />
-            <h3 className="font-bold text-slate-900 text-base">
+      <section id="section-e" className="clay-surface overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-rose-700 to-red-800 text-white flex items-center justify-between rounded-t-[26px]">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-rose-200" />
+            <h3 className="font-bold text-white text-base">
               E. Safety & Risk Assessment (การประเมินความเสี่ยงด้านความปลอดภัย)
             </h3>
           </div>
-          <span className="text-xs text-red-600 font-semibold flex items-center gap-1">
-            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-            เกณฑ์เฝ้าระวังความปลอดภัย (Semantic Colors)
+          <span className="text-xs text-rose-100 font-bold hidden sm:flex items-center gap-1 bg-white/15 px-3 py-1 rounded-full">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-200" />
+            เกณฑ์เฝ้าระวังความปลอดภัย
           </span>
         </div>
 

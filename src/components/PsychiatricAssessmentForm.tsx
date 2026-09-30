@@ -77,13 +77,51 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
   const toggleArrayItem = useCallback((field: keyof PsychiatricAssessment, item: string) => {
     const current = (dataRef.current[field] as string[]) || [];
 
-    if (field === 'psychosocialStressors') {
-      if (item === 'ไม่มี/ไม่ชัดเจน') {
-        const updated = current.includes('ไม่มี/ไม่ชัดเจน') ? [] : ['ไม่มี/ไม่ชัดเจน'];
+    // Precipitating Factors mutual exclusion
+    if (field === 'precipitatingFactors') {
+      const isNone = item === 'ไม่พบปัจจัยชัดเจน' || item === 'ไม่มี/ไม่ชัดเจน' || item === 'ไม่มี';
+      if (isNone) {
+        const updated = current.includes(item) ? [] : [item];
         onChange({ [field]: updated });
         return;
       } else {
-        const withoutNone = current.filter(i => i !== 'ไม่มี/ไม่ชัดเจน');
+        const withoutNone = current.filter(
+          i => i !== 'ไม่พบปัจจัยชัดเจน' && i !== 'ไม่มี/ไม่ชัดเจน' && i !== 'ไม่มี'
+        );
+        const updated = withoutNone.includes(item)
+          ? withoutNone.filter(i => i !== item)
+          : [...withoutNone, item];
+        onChange({ [field]: updated });
+        return;
+      }
+    }
+
+    // Psychosocial Stressors mutual exclusion
+    if (field === 'psychosocialStressors') {
+      const isNone = item === 'ไม่มี/ไม่ชัดเจน' || item === 'ไม่มี';
+      if (isNone) {
+        const updated = current.includes(item) ? [] : [item];
+        onChange({ [field]: updated });
+        return;
+      } else {
+        const withoutNone = current.filter(i => i !== 'ไม่มี/ไม่ชัดเจน' && i !== 'ไม่มี');
+        const updated = withoutNone.includes(item)
+          ? withoutNone.filter(i => i !== item)
+          : [...withoutNone, item];
+        onChange({ [field]: updated });
+        return;
+      }
+    }
+
+    // Other Risks mutual exclusion
+    if (field === 'otherRisks') {
+      const isNone = item === 'None' || item === 'ไม่มี';
+      if (isNone) {
+        const updated = current.includes(item) ? [] : [item];
+        onChange({ [field]: updated });
+        return;
+      } else {
+        const withoutNone = current.filter(i => i !== 'None' && i !== 'ไม่มี');
         const updated = withoutNone.includes(item)
           ? withoutNone.filter(i => i !== item)
           : [...withoutNone, item];
@@ -185,25 +223,25 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Sticky Step Header & View Mode Switcher */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-3 sm:p-4 sticky top-16 z-30 backdrop-blur-md">
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 flex-wrap">
+      {/* Sticky Step Header & View Mode Switcher (Clay Floating Bar) */}
+      <div className="clay-surface p-3 sm:p-4 sticky top-20 z-30 bg-white/95 backdrop-blur-md mb-6">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/80 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 bg-slate-100/90 px-3 py-1 rounded-xl shadow-2xs">
               โหมดการประเมิน
             </span>
-            <span className="text-xs text-slate-600 font-medium hidden sm:inline">
+            <span className="text-xs text-slate-600 font-bold hidden sm:inline">
               {viewMode === 'wizard' ? 'กรอกทีละขั้นตอน (Wizard Mode)' : 'แสดงฟอร์มทั้งหมดบนหน้าเดียว (Full Form)'}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200 shadow-2xs">
             <button
               type="button"
               onClick={() => onViewModeChange && onViewModeChange('wizard')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'wizard'
-                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200 font-bold'
+                  ? 'clay-pill-active'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -214,9 +252,9 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => onViewModeChange && onViewModeChange('full')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'full'
-                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200 font-bold'
+                  ? 'clay-pill-active'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -227,7 +265,7 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
         </div>
 
         {/* Step Navigation Tabs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-3">
           {STEPS.map((step) => {
             const isActive = activeStep === step.id;
             const isCompleted = stepCompletionStatus[step.id as keyof typeof stepCompletionStatus];
@@ -242,28 +280,30 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
                 key={step.id}
                 type="button"
                 onClick={() => setActiveStep(step.id)}
-                className={`relative text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between min-h-[68px] ${
+                className={`relative text-left p-3.5 rounded-2xl transition-all cursor-pointer flex flex-col justify-between min-h-[72px] ${
                   isActive
-                    ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-bold shadow-xs'
+                    ? 'clay-card-blue ring-2 ring-blue-400 font-extrabold text-blue-950 scale-[1.02]'
                     : hasError
-                    ? 'bg-rose-50/80 border-rose-300 text-rose-900 hover:bg-rose-100/80'
-                    : 'bg-slate-50/70 hover:bg-slate-100 border-slate-200/80 text-slate-700'
+                    ? 'clay-card-rose text-rose-950 hover:scale-[1.01]'
+                    : isCompleted
+                    ? 'clay-card-mint text-emerald-950 hover:scale-[1.01]'
+                    : 'clay-surface text-slate-800 hover:scale-[1.01]'
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 w-full">
-                  <span className="text-xs font-extrabold uppercase tracking-tight text-slate-500">
+                  <span className="text-[11px] font-extrabold uppercase tracking-tight text-slate-600">
                     ขั้นตอน {step.id}
                   </span>
                   {hasError ? (
-                    <span className="text-[10px] font-bold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold text-rose-700 bg-rose-100/90 px-2 py-0.5 rounded-full border border-rose-300">
                       ข้อมูลไม่ครบ
                     </span>
                   ) : isCompleted ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                   ) : null}
                 </div>
 
-                <div className="text-xs sm:text-sm font-semibold truncate mt-1">
+                <div className="text-xs sm:text-sm font-extrabold truncate mt-1">
                   {step.title}
                 </div>
               </button>

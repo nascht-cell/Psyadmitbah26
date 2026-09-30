@@ -12,6 +12,9 @@ export interface PsychiatricAssessment {
 
   // Section A: Patient Identification
   fullName: string;
+  titlePrefix?: string; // คำนำหน้า เช่น นาย, นาง, น.ส., ยศ
+  firstName?: string; // ชื่อ
+  lastName?: string; // นามสกุล
   age: string;
   gender: 'ชาย' | 'หญิง' | 'อื่นๆ' | '';
   hn: string;
@@ -184,6 +187,9 @@ export const initialAssessmentData: PsychiatricAssessment = {
 
   // Section A
   fullName: '',
+  titlePrefix: '',
+  firstName: '',
+  lastName: '',
   age: '',
   gender: '',
   hn: '',
@@ -201,7 +207,7 @@ export const initialAssessmentData: PsychiatricAssessment = {
   duration: '',
   onset: 'ค่อยเป็นค่อยไป (Gradual)',
   course: 'แย่ลงเรื่อยๆ (Progressive)',
-  precipitatingFactors: [],
+  precipitatingFactors: ['ขาดยา'],
   precipitatingFactorsOther: '',
   associatedSymptoms: [],
   hpiDetails: '',
@@ -344,11 +350,59 @@ export const initialAssessmentData: PsychiatricAssessment = {
   allowPage4: false,
 };
 
+export const constructFullName = (firstName?: string, lastName?: string, titlePrefix?: string): string => {
+  const parts = [titlePrefix, firstName, lastName]
+    .map(p => (p ? p.trim() : ''))
+    .filter(Boolean);
+  return parts.join(' ');
+};
+
+export const parseFullName = (fullName: string): { titlePrefix: string; firstName: string; lastName: string } => {
+  if (!fullName || !fullName.trim()) {
+    return { titlePrefix: '', firstName: '', lastName: '' };
+  }
+  const trimmed = fullName.trim();
+  const knownTitles = [
+    'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.',
+    'นางสาว', 'น.ส.', 'นาง', 'นาย',
+    'พลฯ', 'พลทหาร', 'จ.ส.อ.', 'จ.ส.ท.', 'จ.ส.ต.',
+    'ร.ต.', 'ร.ท.', 'ร.อ.', 'พ.ต.', 'พ.ท.', 'พ.อ.',
+    'น.ต.', 'น.ท.', 'น.อ.', 'พ.อ.อ.', 'พ.อ.ท.', 'พ.อ.ต.',
+    'ศ.', 'รศ.', 'ผศ.', 'ดร.', 'นพ.', 'พญ.', 'ทพ.', 'ทพญ.', 'ภก.', 'ภญ.'
+  ];
+
+  let title = '';
+  let rest = trimmed;
+  for (const t of knownTitles) {
+    if (rest.startsWith(t)) {
+      title = t;
+      rest = rest.slice(t.length).trim();
+      break;
+    }
+  }
+
+  const parts = rest.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return { titlePrefix: title, firstName: '', lastName: '' };
+  }
+  if (parts.length === 1) {
+    return { titlePrefix: title, firstName: parts[0], lastName: '' };
+  }
+  return {
+    titlePrefix: title,
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  };
+};
+
 export const samplePatientData: PsychiatricAssessment = {
   ...initialAssessmentData,
   id: '67001234',
   hn: '67001234',
   an: '',
+  titlePrefix: 'นาย',
+  firstName: 'สมศักดิ์',
+  lastName: 'รักสงบ',
   fullName: 'นายสมศักดิ์ รักสงบ',
   age: '38',
   gender: 'ชาย',

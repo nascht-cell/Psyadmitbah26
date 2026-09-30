@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { User, Activity, Calendar, Clock, CheckSquare, History, FolderOpen, ShieldCheck, Upload } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
+import { parseFullName, constructFullName } from '../../types/assessment';
 import { DebouncedInput } from './DebouncedInput';
 import { DebouncedTextarea } from './DebouncedTextarea';
 import { SearchableTokenMultiSelect } from './SearchableTokenMultiSelect';
@@ -27,6 +28,12 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
         const parsed = JSON.parse(text);
         const assessmentData = parsed.data || parsed;
         if (assessmentData && (assessmentData.hospitalName !== undefined || assessmentData.hn !== undefined)) {
+          if (assessmentData.fullName && (!assessmentData.firstName || !assessmentData.lastName)) {
+            const parsedName = parseFullName(assessmentData.fullName);
+            assessmentData.titlePrefix = assessmentData.titlePrefix || parsedName.titlePrefix;
+            assessmentData.firstName = assessmentData.firstName || parsedName.firstName;
+            assessmentData.lastName = assessmentData.lastName || parsedName.lastName;
+          }
           onChange(assessmentData);
           const { saveToLocalHistory } = await import('../../utils/storage');
           await saveToLocalHistory(assessmentData);
@@ -43,102 +50,97 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
   return (
     <div className="space-y-6">
       {/* 0. Official Document Header Card (Mirrors A4 Document Header) */}
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="bg-slate-900 text-white px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="clay-surface overflow-hidden">
+        <div className="bg-slate-900 text-white px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-t-[26px]">
           <div className="flex items-center gap-3.5">
-            <div className="h-14 w-auto flex items-center justify-center shrink-0">
+            <div className="h-14 w-auto flex items-center justify-center shrink-0 p-1 bg-white/10 rounded-2xl">
               <img
                 src="/Official_emblem_of_Bhumibol_Adulyadej_Hospital.jpg"
                 alt="ตราสัญลักษณ์โรงพยาบาลภูมิพลอดุลยเดช"
-                className="h-14 w-auto object-contain shrink-0 drop-shadow-sm"
+                className="h-12 w-auto object-contain shrink-0 drop-shadow-sm"
                 style={{ aspectRatio: '200 / 283' }}
                 referrerPolicy="no-referrer"
               />
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
                 Bhumibol Adulyadej Hospital · กองจิตเวชและประสาทวิทยา
               </div>
-              <h2 className="text-lg font-bold text-white mt-0.5">
+              <h2 className="text-lg font-extrabold text-white mt-0.5">
                 แบบบันทึกแรกรับผู้ป่วยจิตเวช (Mental Health Admission Form)
               </h2>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-2 bg-slate-800/90 px-3.5 py-2 rounded-2xl border border-slate-700 shadow-2xs">
               <Calendar className="w-4 h-4 text-blue-400" />
               <input
                 type="date"
                 value={data.assessmentDate}
                 onChange={e => onChange({ assessmentDate: e.target.value })}
                 onBlur={e => onBlurField && onBlurField('assessmentDate', e.target.value)}
-                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer"
               />
             </div>
-            <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-2 bg-slate-800/90 px-3.5 py-2 rounded-2xl border border-slate-700 shadow-2xs">
               <Clock className="w-4 h-4 text-blue-400" />
               <input
                 type="time"
                 value={data.assessmentTime}
                 onChange={e => onChange({ assessmentTime: e.target.value })}
                 onBlur={e => onBlurField && onBlurField('assessmentTime', e.target.value)}
-                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer"
               />
             </div>
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50/70 border-b border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-6 bg-slate-50/70 border-b border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
                 แผนก
               </label>
               <input
                 type="text"
                 value={data.department}
                 onChange={e => onChange({ department: e.target.value })}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full text-sm clay-input px-3.5 py-2 font-medium"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
                 ประเภทการรับผู้ป่วย <span className="text-red-500">*</span>
               </label>
-              <div className="flex flex-wrap gap-3 mt-1">
+              <div className="flex flex-wrap gap-2 mt-1">
                 {(['OPD', 'IPD', 'ER'] as const).map(type => (
-                  <label
+                  <button
                     key={type}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium cursor-pointer transition-colors ${
+                    type="button"
+                    onClick={() => onChange({ admissionType: type })}
+                    className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
                       data.admissionType === type
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                        ? 'clay-pill-active'
+                        : 'clay-pill-inactive'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="admissionType"
-                      checked={data.admissionType === type}
-                      onChange={() => onChange({ admissionType: type })}
-                      className="sr-only"
-                    />
                     <span>{type}</span>
-                  </label>
+                  </button>
                 ))}
               </div>
             </div>
           </div>
 
           {/* Quick Clinical Presets Bar for Human Input Speed */}
-          <div className="mt-4 pt-3.5 border-t border-slate-200">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="text-amber-500 font-bold">⚡</span>
+          <div className="mt-5 pt-4 border-t border-slate-200/80">
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-amber-500 font-extrabold text-sm">⚡</span>
                 <span>1 Click Fast fill</span>
               </span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {/* Preset 1: Severe MDD */}
               <button
                 type="button"
@@ -174,7 +176,7 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                     cranialNerves: 'Grossly intact', motorPower: 'Grade V all', tone: 'Normal', sensory: 'Intact', reflexes: 'Normal', cerebellar: 'Normal'
                   });
                 }}
-                className="px-3 py-1.5 text-xs font-bold text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="clay-btn clay-btn-pastel-rose px-3.5 py-2 text-xs font-bold gap-1.5"
                 title="Severe MDD with High Suicide Risk & IPD Admission"
               >
                 <span>🚨 Severe MDD</span>
@@ -211,7 +213,7 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                     cranialNerves: 'Grossly intact', motorPower: 'Grade V all', tone: 'Normal', sensory: 'Intact', reflexes: 'Normal', cerebellar: 'Normal'
                   });
                 }}
-                className="px-3 py-1.5 text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="clay-btn clay-btn-pastel-purple px-3.5 py-2 text-xs font-bold gap-1.5"
                 title="Psychosis Relapse with Agitation & IPD Admission"
               >
                 <span>🧠 Psychosis Relapse</span>
@@ -250,7 +252,7 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                     cranialNerves: 'Grossly intact', motorPower: 'Grade V all', tone: 'Normal', sensory: 'Intact', reflexes: 'Normal', cerebellar: 'Normal'
                   });
                 }}
-                className="px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="clay-btn clay-btn-pastel-amber px-3.5 py-2 text-xs font-bold gap-1.5"
                 title="Bipolar Mania Episode with Agitation & IPD Admission"
               >
                 <span>🔥 Mania Episode</span>
@@ -261,36 +263,36 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
       </div>
 
       {/* Local Storage & Saved Records Browser Quick Bar */}
-      <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-indigo-50 rounded-xl p-4 border border-blue-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+      <div className="clay-card-blue p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="p-2.5 bg-blue-600 text-white rounded-2xl shadow-xs shrink-0 mt-0.5">
             <History className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-sm font-bold text-slate-900">
+              <h4 className="text-sm font-extrabold text-slate-900">
                 ประวัติการบันทึกในเครื่อง (Local Storage Records)
               </h4>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-md border border-emerald-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-900 text-[11px] font-extrabold rounded-full border border-emerald-300 shadow-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                 <span>บันทึกเฉพาะในเครื่อง 100% (Offline & Private)</span>
               </span>
             </div>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+            <p className="text-xs text-slate-700 mt-1 leading-relaxed font-medium">
               ดึงข้อมูลผู้ป่วยที่เคยบันทึกไว้ในเบราว์เซอร์ของเครื่องนี้กลับมาแก้ไขใหม่ได้ง่ายๆ พร้อมวันที่บันทึกกำกับชัดเจน (ข้อมูลไม่ถูกส่งขึ้นอินเทอร์เน็ต)
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           {/* Browse Saved Records in localStorage */}
           <button
             type="button"
             onClick={() => onOpenHistoryModal && onOpenHistoryModal()}
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="clay-btn clay-btn-primary px-4 py-2 text-xs font-extrabold gap-1.5"
             title="เปิดดูรายการประวัติที่บันทึกไว้ในเครื่องเพื่อโหลดกลับมาแก้ไข"
           >
-            <FolderOpen className="w-3.5 h-3.5" />
+            <FolderOpen className="w-4 h-4" />
             <span>ดูประวัติการบันทึก</span>
           </button>
 
@@ -307,10 +309,10 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            className="clay-btn clay-btn-secondary px-3.5 py-2 text-xs font-bold gap-1.5"
             title="เปิดไฟล์แบบประเมิน .json จากเครื่องของคุณ"
           >
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
+            <Upload className="w-4 h-4 text-slate-600" />
             <span>เปิดไฟล์จากเครื่อง (.json)</span>
           </button>
         </div>
@@ -329,10 +331,10 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Row 1: HN, AN, Full Name */}
-          <div className="flex flex-wrap items-start gap-4">
+          {/* Row 1: HN, AN, Title, First Name, Last Name (Separated with compact width) */}
+          <div className="flex flex-wrap items-start gap-3.5">
             {/* HN */}
-            <div className="w-36 shrink-0">
+            <div className="w-32 shrink-0">
               <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center justify-between">
                 <span>
                   HN <span className="text-red-500">*</span>
@@ -362,7 +364,7 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
             </div>
 
             {/* AN */}
-            <div className="w-36 shrink-0">
+            <div className="w-28 shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 AN (ถ้ามี)
               </label>
@@ -376,36 +378,126 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
               />
             </div>
 
-            {/* Full Name */}
-            <div className="flex-1 min-w-[220px] max-w-md">
+            {/* Title Prefix */}
+            <div className="w-24 shrink-0">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                คำนำหน้า
+              </label>
+              <DebouncedInput
+                type="text"
+                list="title-prefix-list"
+                value={data.titlePrefix || (data.fullName ? parseFullName(data.fullName).titlePrefix : '')}
+                onChangeValue={val => {
+                  const currentFirst = data.firstName || (data.fullName ? parseFullName(data.fullName).firstName : '');
+                  const currentLast = data.lastName || (data.fullName ? parseFullName(data.fullName).lastName : '');
+                  const fullName = constructFullName(currentFirst, currentLast, val);
+                  onChange({
+                    titlePrefix: val,
+                    firstName: currentFirst,
+                    lastName: currentLast,
+                    fullName,
+                  });
+                }}
+                onBlur={e => onBlurField && onBlurField('titlePrefix', e.target.value)}
+                placeholder="นาย/นาง"
+                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+              <datalist id="title-prefix-list">
+                <option value="นาย" />
+                <option value="นาง" />
+                <option value="น.ส." />
+                <option value="ด.ช." />
+                <option value="ด.ญ." />
+                <option value="พลฯ" />
+                <option value="พลทหาร" />
+                <option value="จ.ส.อ." />
+                <option value="ร.ต." />
+              </datalist>
+            </div>
+
+            {/* First Name (Short box to prevent typing both names) */}
+            <div className="w-40 shrink-0">
               <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center justify-between">
                 <span>
-                  ชื่อ-สกุล <span className="text-red-500">*</span>
+                  ชื่อ <span className="text-red-500">*</span>
                 </span>
-                {!data.fullName?.trim() && (
-                  <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/80 px-1.5 py-0.5 rounded flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                    จำเป็นต้องระบุ
+                {!(data.firstName?.trim() || (data.fullName ? parseFullName(data.fullName).firstName.trim() : '')) && (
+                  <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/80 px-1 py-0.2 rounded">
+                    จำเป็น
                   </span>
                 )}
               </label>
               <DebouncedInput
-                id="field-fullName"
+                id="field-firstName"
                 type="text"
-                value={data.fullName}
-                onChangeValue={val => onChange({ fullName: val })}
-                onBlur={e => onBlurField && onBlurField('fullName', e.target.value)}
-                placeholder="ระบุชื่อและนามสกุลผู้ป่วย"
+                maxLength={45}
+                value={data.firstName || (data.fullName ? parseFullName(data.fullName).firstName : '')}
+                onChangeValue={val => {
+                  const currentTitle = data.titlePrefix || (data.fullName ? parseFullName(data.fullName).titlePrefix : '');
+                  const currentLast = data.lastName || (data.fullName ? parseFullName(data.fullName).lastName : '');
+                  const fullName = constructFullName(val, currentLast, currentTitle);
+                  onChange({
+                    firstName: val,
+                    lastName: currentLast,
+                    titlePrefix: currentTitle,
+                    fullName,
+                  });
+                }}
+                onBlur={e => onBlurField && onBlurField('firstName', e.target.value)}
+                placeholder="ระบุชื่อจริง"
                 className={`w-full text-sm bg-white border rounded-lg px-3 py-1.5 transition-all focus:ring-2 focus:ring-blue-600 focus:outline-none ${
-                  errors.fullName
+                  errors.firstName
                     ? 'border-red-500 bg-red-50/50'
-                    : !data.fullName?.trim()
+                    : !(data.firstName?.trim() || (data.fullName ? parseFullName(data.fullName).firstName.trim() : ''))
                     ? 'border-slate-300 border-l-4 border-l-rose-500 bg-rose-50/20'
                     : 'border-slate-300'
                 }`}
               />
-              {errors.fullName && (
-                <p className="text-xs text-red-600 mt-1 font-medium">{errors.fullName}</p>
+              {errors.firstName && (
+                <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.firstName}</p>
+              )}
+            </div>
+
+            {/* Last Name (Short box to ensure last name is entered separately) */}
+            <div className="w-44 shrink-0">
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>
+                  นามสกุล <span className="text-red-500">*</span>
+                </span>
+                {!(data.lastName?.trim() || (data.fullName ? parseFullName(data.fullName).lastName.trim() : '')) && (
+                  <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/80 px-1 py-0.2 rounded">
+                    จำเป็น
+                  </span>
+                )}
+              </label>
+              <DebouncedInput
+                id="field-lastName"
+                type="text"
+                maxLength={50}
+                value={data.lastName || (data.fullName ? parseFullName(data.fullName).lastName : '')}
+                onChangeValue={val => {
+                  const currentTitle = data.titlePrefix || (data.fullName ? parseFullName(data.fullName).titlePrefix : '');
+                  const currentFirst = data.firstName || (data.fullName ? parseFullName(data.fullName).firstName : '');
+                  const fullName = constructFullName(currentFirst, val, currentTitle);
+                  onChange({
+                    firstName: currentFirst,
+                    lastName: val,
+                    titlePrefix: currentTitle,
+                    fullName,
+                  });
+                }}
+                onBlur={e => onBlurField && onBlurField('lastName', e.target.value)}
+                placeholder="ระบุนามสกุล"
+                className={`w-full text-sm bg-white border rounded-lg px-3 py-1.5 transition-all focus:ring-2 focus:ring-blue-600 focus:outline-none ${
+                  errors.lastName
+                    ? 'border-red-500 bg-red-50/50'
+                    : !(data.lastName?.trim() || (data.fullName ? parseFullName(data.fullName).lastName.trim() : ''))
+                    ? 'border-slate-300 border-l-4 border-l-rose-500 bg-rose-50/20'
+                    : 'border-slate-300'
+                }`}
+              />
+              {errors.lastName && (
+                <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.lastName}</p>
               )}
             </div>
           </div>
@@ -743,9 +835,9 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
               </label>
               <SearchableTokenMultiSelect
                 options={[
+                  'ขาดยา',
                   'ปัญหาครอบครัว/ความสัมพันธ์',
                   'การเงิน/การงาน',
-                  'ขาดยา',
                   'ใช้สารเสพติด',
                   'โรคทางกายกำเริบ',
                   'ไม่พบปัจจัยชัดเจน',

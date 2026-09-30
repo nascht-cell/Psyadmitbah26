@@ -13,15 +13,15 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
   return (
     <div className="space-y-6">
       {/* SECTION C: Psychiatric / Medical History (Mirrors A4 Document Page 1 Box 3) */}
-      <section id="section-c" className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="px-6 py-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <HeartPulse className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-slate-900 text-base">
+      <section id="section-c" className="clay-surface overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between rounded-t-[26px]">
+          <div className="flex items-center gap-2.5">
+            <HeartPulse className="w-5 h-5 text-blue-200" />
+            <h3 className="font-bold text-white text-base">
               C. Psychiatric / Medical / Medication History (ประวัติอดีต)
             </h3>
           </div>
-          <span className="text-xs text-slate-500 font-medium">ประวัติจิตเวช ทางกาย ยา และสารเสพติด</span>
+          <span className="text-xs text-blue-100 font-medium">ประวัติจิตเวช ทางกาย ยา และสารเสพติด</span>
         </div>
 
         <div className="p-6 space-y-6">
@@ -527,15 +527,15 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
       </section>
 
       {/* SECTION G: Psychosocial Assessment (Mirrors A4 Document Page 2 Box 4) */}
-      <section id="section-g" className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="px-6 py-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-slate-900 text-base">
+      <section id="section-g" className="clay-surface overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex items-center justify-between rounded-t-[26px]">
+          <div className="flex items-center gap-2.5">
+            <Users className="w-5 h-5 text-emerald-200" />
+            <h3 className="font-bold text-white text-base">
               G. Psychosocial Assessment (การประเมินด้านจิตสังคม)
             </h3>
           </div>
-          <span className="text-xs text-slate-500 font-medium">ความเครียด สิ่งแวดล้อม และครอบครัว</span>
+          <span className="text-xs text-emerald-100 font-medium">ความเครียด สิ่งแวดล้อม และครอบครัว</span>
         </div>
         <div className="p-6 space-y-4">
           <div>

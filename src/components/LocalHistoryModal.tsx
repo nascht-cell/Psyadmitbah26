@@ -178,7 +178,7 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
         refreshList();
       } catch (err) {
         console.error('Error importing JSON file:', err);
-        alert('ไฟล์ JSON ไม่ถูกต้องหรือไม่ตรงตามรูปแบบของแบบประเมิน');
+        showNotification('ไฟล์ JSON ไม่ถูกต้องหรือไม่ตรงตามรูปแบบของแบบประเมิน');
       }
     };
     reader.readAsText(file);
@@ -188,30 +188,30 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-fadeIn no-print">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn no-print">
+      <div className="clay-surface w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between gap-4 border-b border-slate-800 shrink-0">
+        <div className="px-6 py-4.5 bg-slate-900 text-white flex items-center justify-between gap-4 rounded-t-[26px] shrink-0 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-600/30 border border-blue-500/40 text-blue-400">
+            <div className="p-2.5 rounded-2xl bg-blue-600/40 border border-blue-400/40 text-blue-300">
               <History className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
+              <h3 className="font-extrabold text-base text-white flex items-center gap-2">
                 <span>ประวัติการบันทึก (Local Saved Records)</span>
-                <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-300 rounded-full border border-blue-400/30">
+                <span className="px-2.5 py-0.5 text-xs font-bold bg-blue-500/30 text-blue-200 rounded-full border border-blue-400/40">
                   {records.length} รายการ
                 </span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                เรียกดูและโหลดข้อมูลเก่ากลับมาแก้ไขใหม่ได้ทันที
+              <p className="text-xs text-slate-300 mt-0.5 font-medium">
+                เรียกดูและโหลดข้อมูลเก่ากลับมาแก้ไขใหม่ได้ทันที (100% Offline)
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="ปิดหน้าต่าง"
           >
             <X className="w-5 h-5" />
@@ -219,32 +219,34 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
         </div>
 
         {/* Local Storage Privacy & Security Banner */}
-        <div className="px-6 py-3.5 bg-emerald-50 border-b border-emerald-200 flex items-start gap-3 shrink-0">
-          <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-          <div className="text-xs text-emerald-900 leading-relaxed">
-            <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+        <div className="px-6 py-3.5 bg-emerald-50/90 border-b border-emerald-200/80 flex items-start gap-3 shrink-0">
+          <div className="p-1 rounded-lg bg-emerald-100 text-emerald-800 shrink-0 mt-0.5">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div className="text-xs text-emerald-950 leading-relaxed">
+            <div className="font-extrabold text-emerald-950 flex items-center gap-1.5">
               <span>🔒 ความเป็นส่วนตัวสูงสุด: บันทึกเฉพาะในเครื่องของคุณ (Local Storage Only)</span>
             </div>
-            <p className="text-emerald-800 mt-0.5">
-              ข้อมูลประวัติทั้งหมดถูกเข้ารหัสและจัดเก็บอยู่ในพื้นที่หน่วยความจำของบราวเซอร์บนอุปกรณ์นี้เท่านั้น{' '}
-              <strong className="underline decoration-emerald-500 font-semibold">
+            <p className="text-emerald-900 font-medium mt-0.5">
+              ข้อมูลประวัติทั้งหมดถูกเข้ารหัสและจัดเก็บอยู่ในพื้นที่หน่วยความจำของเบราว์เซอร์บนอุปกรณ์นี้เท่านั้น{' '}
+              <strong className="underline decoration-emerald-600 font-bold">
                 ไม่มีการส่งหรือจัดเก็บบนเซิร์ฟเวอร์อินเทอร์เน็ตใดๆ ทั้งสิ้น
               </strong>{' '}
-              ข้อมูลจะคงอยู่แม้ปิดหน้าเว็บ และคุณสามารถล้างข้อมูลทั้งหมดได้ตลอดเวลา
+              ข้อมูลจะคงอยู่แม้ปิดหน้าเว็บ ปลอดภัยตามมาตรฐานความลับผู้ป่วย
             </p>
           </div>
         </div>
 
         {/* Status Notification Toast */}
         {statusNotification && (
-          <div className="px-6 py-2.5 bg-blue-50 text-blue-900 text-xs font-semibold flex items-center justify-between border-b border-blue-200 animate-fadeIn">
+          <div className="px-6 py-2.5 bg-blue-50 text-blue-950 text-xs font-bold flex items-center justify-between border-b border-blue-200 animate-fadeIn">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-blue-600" />
               <span>{statusNotification}</span>
             </div>
             <button
               onClick={() => setStatusNotification(null)}
-              className="text-blue-500 hover:text-blue-800"
+              className="text-blue-500 hover:text-blue-800 font-bold text-sm"
             >
               &times;
             </button>
@@ -252,22 +254,22 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
         )}
 
         {/* Search & Tool Bar */}
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           {/* Search Input */}
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="ค้นหาตาม HN, ชื่อผู้ป่วย, การวินิจฉัย..."
-              className="w-full bg-white text-xs border border-slate-300 rounded-lg pl-9 pr-8 py-2 focus:ring-2 focus:ring-blue-600 focus:outline-none placeholder:text-slate-400"
+              className="w-full clay-input pl-10 pr-8 py-2 text-xs text-slate-800 placeholder:text-slate-400 font-medium"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5"
               >
                 &times;
               </button>
@@ -289,10 +291,10 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="clay-btn clay-btn-pastel-amber text-xs px-3.5 py-2 font-bold flex items-center gap-1.5"
               title="เปิดไฟล์ประวัติ .json จากในคอมพิวเตอร์ของคุณ"
             >
-              <FolderOpen className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <FolderOpen className="w-4 h-4 text-amber-900 shrink-0" />
               <span>เปิดไฟล์จากเครื่อง (.json)</span>
             </button>
 
@@ -301,10 +303,10 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
               <button
                 type="button"
                 onClick={handleExportAllBackupJson}
-                className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                className="clay-btn clay-btn-secondary text-xs px-3 py-2 font-bold flex items-center gap-1.5"
                 title="ดาวน์โหลดประวัติทั้งหมดเก็บไว้เป็นไฟล์ .json สำรอง"
               >
-                <Download className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                <Download className="w-3.5 h-3.5 text-slate-700 shrink-0" />
                 <span className="hidden md:inline">สำรองประวัติทั้งหมด</span>
               </button>
             )}
@@ -314,7 +316,7 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsClearAllConfirmOpen(true)}
-                className="px-2.5 py-1.5 bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-300 hover:border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                className="clay-btn clay-btn-pastel-rose text-xs px-3 py-2 font-bold flex items-center gap-1"
                 title="ล้างประวัติทั้งหมดที่บันทึกไว้ในเครื่องนี้"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -425,60 +427,60 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
                 return (
                   <div
                     key={rec.id}
-                    className={`bg-white rounded-xl border p-4 transition-all shadow-xs hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                    className={`clay-surface p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                       isSelected
-                        ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/20'
-                        : 'border-slate-200 hover:border-slate-300'
+                        ? 'ring-4 ring-blue-400 bg-blue-50/50'
+                        : 'hover:translate-y-[-1px]'
                     }`}
                   >
                     {/* Patient & Assessment Details */}
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         {/* HN Badge */}
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-900 border border-blue-200 rounded font-mono font-bold text-xs">
+                        <span className="px-2.5 py-0.5 bg-blue-100 text-blue-900 border border-blue-300 rounded-xl font-mono font-extrabold text-xs shadow-2xs">
                           HN: {rec.hn}
                         </span>
 
                         {/* Admission Type Badge */}
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          className={`px-2.5 py-0.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider shadow-2xs ${
                             rec.admissionType === 'IPD'
-                              ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                              ? 'bg-rose-100 text-rose-900 border border-rose-300'
                               : rec.admissionType === 'ER'
-                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                           }`}
                         >
                           {rec.admissionType || 'OPD'}
                         </span>
 
                         {/* Full Name */}
-                        <span className="font-bold text-sm text-slate-900 truncate">
+                        <span className="font-extrabold text-sm text-slate-900 truncate">
                           {rec.fullName}
                         </span>
 
                         {rec.age && (
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-slate-600 font-bold">
                             ({rec.age} ปี)
                           </span>
                         )}
                       </div>
 
                       {/* Primary Diagnosis */}
-                      <div className="text-xs text-slate-700 truncate font-medium flex items-center gap-1.5">
+                      <div className="text-xs text-slate-700 truncate font-semibold flex items-center gap-1.5">
                         <span className="text-slate-400 font-normal">Dx:</span>
-                        <span className="text-slate-800 font-semibold">{rec.primaryDiagnosis}</span>
+                        <span className="text-slate-900 font-bold">{rec.primaryDiagnosis}</span>
                       </div>
 
                       {/* Saved Timestamp */}
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-0.5">
-                        <span className="flex items-center gap-1 text-slate-600">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 pt-0.5 font-medium">
+                        <span className="flex items-center gap-1 text-slate-700">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
                           <span>วันที่ตรวจ: {rec.assessmentDate}</span>
                         </span>
                         <span>•</span>
-                        <span className="flex items-center gap-1 text-blue-700 font-medium">
-                          <Clock className="w-3.5 h-3.5 text-blue-500" />
+                        <span className="flex items-center gap-1 text-blue-800 font-bold">
+                          <Clock className="w-3.5 h-3.5 text-blue-600" />
                           <span>บันทึกล่าสุด: {formatThaiDateTime(rec.savedAt)}</span>
                         </span>
                       </div>
@@ -490,10 +492,10 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedRecordToLoad(rec)}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                        className="clay-btn clay-btn-primary px-3.5 py-2 text-xs font-extrabold flex items-center gap-1.5"
                         title="โหลดข้อมูลนี้เข้าไปในแบบฟอร์มเพื่อแก้ไขหรือพิมพ์"
                       >
-                        <FolderOpen className="w-3.5 h-3.5" />
+                        <FolderOpen className="w-4 h-4" />
                         <span>โหลดมาแก้ไข</span>
                       </button>
 
@@ -501,7 +503,7 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleExportSingleJson(rec)}
-                        className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg text-xs transition-colors cursor-pointer"
+                        className="p-2 clay-btn clay-btn-secondary text-xs"
                         title="บันทึกข้อมูลผู้ป่วยรายนี้เป็นไฟล์ .json แยกเดี่ยว"
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -511,7 +513,7 @@ export const LocalHistoryModal: React.FC<LocalHistoryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDelete(rec.id)}
-                        className="p-2 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-300 rounded-lg text-xs transition-colors cursor-pointer"
+                        className="p-2 clay-btn clay-btn-pastel-rose text-xs"
                         title="ลบรายการนี้ออกจากเครื่อง"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
