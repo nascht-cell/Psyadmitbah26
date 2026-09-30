@@ -1,7 +1,6 @@
 import React from 'react';
 import { Stethoscope, Brain, Check, FlaskConical, Pill, FileCheck, CheckSquare, Sparkles } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
-import { SearchableTokenMultiSelect } from './SearchableTokenMultiSelect';
 
 const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
   data,
@@ -588,21 +587,35 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
             </div>
 
             {data.investigationStatus === 'ส่งตรวจ Lab' && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-                <SearchableTokenMultiSelect
-                  options={['CBC', 'BUN/Cr', 'Electrolyte', 'LFT', 'TFT', 'U-Tox (สารเสพติด)', 'VDRL/Anti-HIV']}
-                  selected={data.labTests || []}
-                  onToggle={item => toggleArrayItem('labTests', item)}
-                  placeholder="เลือกหรือค้นหาการส่งตรวจ Lab..."
-                  searchPlaceholder="ค้นหา Lab..."
-                  tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
-                />
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
+                <div className="flex flex-wrap gap-2">
+                  {['CBC', 'BUN/Cr', 'Electrolyte', 'LFT', 'TFT', 'U-Tox (สารเสพติด)', 'VDRL/Anti-HIV'].map(item => {
+                    const isSelected = (data.labTests || []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggleArrayItem('labTests', item)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                          isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                        )}
+                        <span>{item}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <input
                   type="text"
                   value={data.labOther}
                   onChange={e => onChange({ labOther: e.target.value })}
                   placeholder="Lab อื่นๆ..."
-                  className="w-full text-xs border border-slate-300 rounded px-2 py-1 bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
                 />
               </div>
             )}
@@ -627,20 +640,34 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
               <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
                 J. กลุ่มโรค (Diagnostic Category - Primary)
               </label>
-              <SearchableTokenMultiSelect
-                options={[
+              <div className="flex flex-wrap gap-2">
+                {[
                   'F00-F09 Neurocognitive d/o',
                   'F10-F19 Substance-related',
                   'F20-F29 Schizophrenia/Psychotic',
                   'F30-F39 Mood d/o',
                   'F40-F48 Anxiety/Somatoform',
-                ]}
-                selected={data.diagnosticCategory || []}
-                onToggle={item => toggleArrayItem('diagnosticCategory', item)}
-                placeholder="เลือกหรือค้นหากลุ่มโรค ICD-10..."
-                searchPlaceholder="ค้นหากลุ่มโรค..."
-                tokenColorClass="bg-indigo-50 text-indigo-900 border-indigo-300 hover:bg-indigo-100"
-              />
+                ].map(item => {
+                  const isSelected = (data.diagnosticCategory || []).includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleArrayItem('diagnosticCategory', item)}
+                      className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                        isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                      }`}
+                    >
+                      {isSelected ? (
+                        <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                      ) : (
+                        <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                      )}
+                      <span>{item}</span>
+                    </button>
+                  );
+                })}
+              </div>
               <input
                 type="text"
                 value={data.diagnosticCategoryOther}
@@ -814,21 +841,35 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
                 <span className="text-xs font-bold text-blue-900 block">
                   เลือกกลุ่มยาที่เริ่ม/ปรับ:
                 </span>
-                <SearchableTokenMultiSelect
-                  options={[
+                <div className="flex flex-wrap gap-2">
+                  {[
                     'Antidepressants',
                     'Antipsychotics',
                     'Mood Stabilizers',
                     'Anxiolytics/Sedatives',
                     'Anticholinergics (แก้ EPS)',
                     'อื่นๆ',
-                  ]}
-                  selected={data.medicationGroups || []}
-                  onToggle={item => toggleArrayItem('medicationGroups', item)}
-                  placeholder="เลือกหรือค้นหากลุ่มยา..."
-                  searchPlaceholder="ค้นหากลุ่มยา..."
-                  tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
-                />
+                  ].map(item => {
+                    const isSelected = (data.medicationGroups || []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggleArrayItem('medicationGroups', item)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                          isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                        )}
+                        <span>{item}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-medium text-slate-700">
@@ -880,19 +921,33 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
               2. Non-Pharmacological Treatment (การบำบัดทางจิตสังคม)
             </label>
-            <SearchableTokenMultiSelect
-              options={[
+            <div className="flex flex-wrap gap-2">
+              {[
                 'Psychoeducation',
                 'Supportive Psychotherapy',
                 'CBT / Specific Psychotherapy',
                 'Family Therapy / Counseling',
-              ]}
-              selected={data.nonPharmTreatments || []}
-              onToggle={item => toggleArrayItem('nonPharmTreatments', item)}
-              placeholder="เลือกหรือค้นหาการบำบัด..."
-              searchPlaceholder="ค้นหาการบำบัด..."
-              tokenColorClass="bg-teal-50 text-teal-900 border-teal-300 hover:bg-teal-100"
-            />
+              ].map(item => {
+                const isSelected = (data.nonPharmTreatments || []).includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleArrayItem('nonPharmTreatments', item)}
+                    className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                      isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                    ) : (
+                      <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                    )}
+                    <span>{item}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* 3. MDT Consult */}
@@ -930,18 +985,32 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
             {data.mdtConsult === 'ส่ง' && (
               <div className="p-3.5 bg-blue-50/40 border border-blue-200 rounded-xl space-y-2.5">
                 <span className="text-xs font-semibold text-blue-900 block">เลือกทีมสหวิชาชีพที่ต้องการปรึกษา:</span>
-                <SearchableTokenMultiSelect
-                  options={[
+                <div className="flex flex-wrap gap-2">
+                  {[
                     'นักจิตวิทยาคลินิก',
                     'นักสังคมสงเคราะห์',
                     'อายุรแพทย์',
-                  ]}
-                  selected={data.mdtRoles || []}
-                  onToggle={item => toggleArrayItem('mdtRoles', item)}
-                  placeholder="เลือกหรือค้นหาสหวิชาชีพ..."
-                  searchPlaceholder="ค้นหา..."
-                  tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
-                />
+                  ].map(item => {
+                    const isSelected = (data.mdtRoles || []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggleArrayItem('mdtRoles', item)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                          isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                        )}
+                        <span>{item}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <input
                   type="text"
                   value={data.mdtOther}
@@ -1042,19 +1111,33 @@ const Step4PhysicalAndPlanComponent: React.FC<AssessmentStepProps> = ({
                 </label>
                 <span className="text-xs text-slate-500">เลือกข้อบ่งชี้ตามเกณฑ์การประเมิน</span>
               </div>
-              <SearchableTokenMultiSelect
-                options={[
+              <div className="flex flex-wrap gap-2">
+                {[
                   'เป็นอันตรายต่อตนเอง (Risk of Harm to Self)',
                   'เป็นอันตรายต่อผู้อื่น (Risk of Harm to Others)',
                   'ผลการรักษาแบบผู้ป่วยนอกล้มเหลว (Failure of outpatient treatment)',
                   'ต้องการการปรับยาหรือเฝ้าระวังผลข้างเคียงอย่างใกล้ชิด',
-                ]}
-                selected={data.admissionIndications || []}
-                onToggle={item => toggleArrayItem('admissionIndications', item)}
-                placeholder="เลือกหรือค้นหาข้อบ่งชี้การรับไว้รักษา..."
-                searchPlaceholder="ค้นหาข้อบ่งชี้..."
-                tokenColorClass="bg-rose-50 text-rose-900 border-rose-300 hover:bg-rose-100"
-              />
+                ].map(item => {
+                  const isSelected = (data.admissionIndications || []).includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleArrayItem('admissionIndications', item)}
+                      className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                        isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                      }`}
+                    >
+                      {isSelected ? (
+                        <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                      ) : (
+                        <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                      )}
+                      <span>{item}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* PDF Layout Options */}

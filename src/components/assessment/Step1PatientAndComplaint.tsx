@@ -1,10 +1,9 @@
 import React, { useRef } from 'react';
-import { User, Activity, Calendar, Clock, CheckSquare, History, FolderOpen, ShieldCheck, Upload } from 'lucide-react';
+import { Check, User, Activity, Calendar, Clock, CheckSquare, History, FolderOpen, ShieldCheck, Upload } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
 import { parseFullName, constructFullName } from '../../types/assessment';
 import { DebouncedInput } from './DebouncedInput';
 import { DebouncedTextarea } from './DebouncedTextarea';
-import { SearchableTokenMultiSelect } from './SearchableTokenMultiSelect';
 
 const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
   data,
@@ -720,11 +719,11 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
         <div className="p-6 space-y-5">
           {/* Chief Complaint */}
           <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-              อาการสำคัญ (Chief Complaint) <span className="text-xs font-normal text-slate-500">(เลือกหรือพิมพ์ค้นหาได้มากกว่า 1 ข้อ)</span>
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
+              อาการสำคัญ (Chief Complaint) <span className="text-xs font-normal text-slate-500">(เลือกได้มากกว่า 1 ข้อ)</span>
             </label>
-            <SearchableTokenMultiSelect
-              options={[
+            <div className="flex flex-wrap gap-2">
+              {[
                 'ซึมเศร้า/ท้อแท้',
                 'หงุดหงิด/ก้าวร้าว',
                 'หูแว่ว/ประสาทหลอน',
@@ -732,15 +731,29 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                 'สับสน/หลงลืม',
                 'ทำร้ายตนเอง',
                 'มีปัญหาพฤติกรรม',
-              ]}
-              selected={data.chiefComplaint || []}
-              onToggle={item => toggleArrayItem('chiefComplaint', item)}
-              placeholder="เลือกหรือค้นหาอาการสำคัญ..."
-              searchPlaceholder="พิมพ์ค้นหา / กด Enter เพื่อเพิ่ม..."
-              tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
-            />
+              ].map(item => {
+                const isSelected = (data.chiefComplaint || []).includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleArrayItem('chiefComplaint', item)}
+                    className={`px-3.5 py-2 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                      isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                    ) : (
+                      <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                    )}
+                    <span>{item}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-            <div className="mt-2 space-y-1 max-w-md">
+            <div className="mt-3 space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-slate-500 font-medium">ระบุอาการสำคัญอื่นๆ เพิ่มเติม (ถ้ามี)</span>
               </div>
@@ -830,45 +843,73 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
           {/* Precipitating Factors & Associated Symptoms */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-slate-100">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                 ปัจจัยกระตุ้น (Precipitating factors)
               </label>
-              <SearchableTokenMultiSelect
-                options={[
+              <div className="flex flex-wrap gap-2">
+                {[
                   'ขาดยา',
                   'ปัญหาครอบครัว/ความสัมพันธ์',
                   'การเงิน/การงาน',
                   'ใช้สารเสพติด',
                   'โรคทางกายกำเริบ',
                   'ไม่พบปัจจัยชัดเจน',
-                ]}
-                selected={data.precipitatingFactors || []}
-                onToggle={item => toggleArrayItem('precipitatingFactors', item)}
-                placeholder="เลือกหรือค้นหาปัจจัยกระตุ้น..."
-                searchPlaceholder="ค้นหาปัจจัยกระตุ้น..."
-                tokenColorClass="bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
-              />
+                ].map(item => {
+                  const isSelected = (data.precipitatingFactors || []).includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleArrayItem('precipitatingFactors', item)}
+                      className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                        isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                      }`}
+                    >
+                      {isSelected ? (
+                        <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                      ) : (
+                        <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                      )}
+                      <span>{item}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                 อาการร่วมที่สำคัญ (Associated symptoms)
               </label>
-              <SearchableTokenMultiSelect
-                options={[
+              <div className="flex flex-wrap gap-2">
+                {[
                   'นอนไม่หลับ',
                   'เบื่ออาหาร',
                   'น้ำหนักลด/เพิ่ม',
                   'อ่อนเพลีย',
                   'แยกตัว',
                   'พฤติกรรมแปลกไปจากเดิม',
-                ]}
-                selected={data.associatedSymptoms || []}
-                onToggle={item => toggleArrayItem('associatedSymptoms', item)}
-                placeholder="เลือกหรือค้นหาอาการร่วม..."
-                searchPlaceholder="ค้นหาอาการร่วม..."
-                tokenColorClass="bg-purple-50 text-purple-900 border-purple-300 hover:bg-purple-100"
-              />
+                ].map(item => {
+                  const isSelected = (data.associatedSymptoms || []).includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleArrayItem('associatedSymptoms', item)}
+                      className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                        isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                      }`}
+                    >
+                      {isSelected ? (
+                        <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                      ) : (
+                        <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                      )}
+                      <span>{item}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

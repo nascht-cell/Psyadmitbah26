@@ -2,7 +2,6 @@ import React from 'react';
 import { HeartPulse, Users, CheckSquare, Check, AlertCircle, Clock, Wine, Cigarette, Flame, Pill } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
 import { DebouncedInput } from './DebouncedInput';
-import { SearchableTokenMultiSelect } from './SearchableTokenMultiSelect';
 
 const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
   data,
@@ -60,21 +59,35 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
             {data.psychiatricHistory === 'มีประวัติ' && (
               <div className="mt-3 p-3.5 bg-blue-50/40 rounded-xl border border-blue-200 space-y-3">
                 <span className="text-xs font-semibold text-blue-900 block">เลือกกลุ่มโรคจิตเวชเดิม:</span>
-                <SearchableTokenMultiSelect
-                  options={[
+                <div className="flex flex-wrap gap-2">
+                  {[
                     'Depressive d/o',
                     'Bipolar d/o',
                     'Schizophrenia/Psychotic d/o',
                     'Anxiety d/o',
                     'Substance Related d/o',
                     'Dementia',
-                  ]}
-                  selected={data.psychiatricDisorders || []}
-                  onToggle={item => toggleArrayItem('psychiatricDisorders', item)}
-                  placeholder="เลือกหรือค้นหากลุ่มโรคจิตเวช..."
-                  searchPlaceholder="ค้นหากลุ่มโรค..."
-                  tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
-                />
+                  ].map(item => {
+                    const isSelected = (data.psychiatricDisorders || []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggleArrayItem('psychiatricDisorders', item)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                          isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                        )}
+                        <span>{item}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <DebouncedInput
                   type="text"
                   value={data.psychiatricDisorderOther}
@@ -167,8 +180,8 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
             {data.medicalHistory === 'มีโรคประจำตัว' && (
               <div className="mt-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <span className="text-xs font-semibold text-slate-800 block">เลือกโรคทางกายที่มี:</span>
-                <SearchableTokenMultiSelect
-                  options={[
+                <div className="flex flex-wrap gap-2">
+                  {[
                     'HT',
                     'DM',
                     'DLP',
@@ -177,13 +190,27 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
                     'Stroke/Neuro',
                     'Heart disease',
                     'CKD',
-                  ]}
-                  selected={data.medicalConditions || []}
-                  onToggle={item => toggleArrayItem('medicalConditions', item)}
-                  placeholder="เลือกหรือค้นหาโรคทางกาย..."
-                  searchPlaceholder="ค้นหาโรคทางกาย..."
-                  tokenColorClass="bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100"
-                />
+                  ].map(item => {
+                    const isSelected = (data.medicalConditions || []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggleArrayItem('medicalConditions', item)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                          isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                        )}
+                        <span>{item}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <DebouncedInput
                   type="text"
                   value={data.medicalHistoryOther}
@@ -490,20 +517,34 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
 
                     <div className="space-y-2">
                       <span className="text-[11px] font-bold text-slate-600 block">ชนิดสารเสพติด:</span>
-                      <SearchableTokenMultiSelect
-                        options={[
+                      <div className="flex flex-wrap gap-2">
+                        {[
                           { id: 'กัญชา', label: 'กัญชา (Cannabis)' },
                           { id: 'กระท่อม', label: 'กระท่อม (Kratom)' },
                           { id: 'สารระเหย', label: 'สารระเหย (Inhalants)' },
                           { id: 'Opioid', label: 'Opioid (มอร์ฟีน/เฮโรอีน/ทรามาดอล)' },
                           { id: 'อื่นๆ', label: 'อื่นๆ (ระบุ)' },
-                        ]}
-                        selected={data.otherSubstances || []}
-                        onToggle={item => toggleArrayItem('otherSubstances', item)}
-                        placeholder="เลือกหรือค้นหาชนิดสารเสพติด..."
-                        searchPlaceholder="ค้นหาชนิดสาร..."
-                        tokenColorClass="bg-purple-50 text-purple-900 border-purple-300 hover:bg-purple-100"
-                      />
+                        ].map(opt => {
+                          const isSelected = (data.otherSubstances || []).includes(opt.id);
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => toggleArrayItem('otherSubstances', opt.id)}
+                              className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                                isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                              }`}
+                            >
+                              {isSelected ? (
+                                <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                              ) : (
+                                <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                              )}
+                              <span>{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
                       {/* Detail Input for other substances */}
                       {(data.otherSubstances.includes('อื่นๆ') || data.otherSubstances.length > 0 || data.otherSubstancesDetail) && (
@@ -539,11 +580,11 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
               Psychosocial Stressors (ปัจจัยกระตุ้นความเครียด) <span className="text-xs font-normal text-slate-500">(หากเลือกข้ออื่น ระบบจะยกเลิกข้อ "ไม่มี/ไม่ชัดเจน" ให้อัตโนมัติ)</span>
             </label>
-            <SearchableTokenMultiSelect
-              options={[
+            <div className="flex flex-wrap gap-2">
+              {[
                 'ปัญหาความสัมพันธ์/ครอบครัว',
                 'ปัญหาการเงิน/หนี้สิน',
                 'ปัญหาการงาน/การเรียน',
@@ -552,13 +593,27 @@ const Step2PastAndPsychosocialComponent: React.FC<AssessmentStepProps> = ({
                 'ปัญหาคดีความ/กฎหมาย',
                 'ขาดผู้ดูแล/ถูกทอดทิ้ง',
                 'ไม่มี/ไม่ชัดเจน',
-              ]}
-              selected={data.psychosocialStressors || []}
-              onToggle={item => toggleArrayItem('psychosocialStressors', item)}
-              placeholder="เลือกหรือค้นหาปัจจัยความเครียด..."
-              searchPlaceholder="ค้นหาความเครียด..."
-              tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
-            />
+              ].map(item => {
+                const isSelected = (data.psychosocialStressors || []).includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleArrayItem('psychosocialStressors', item)}
+                    className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                      isSelected ? 'clay-pill-active' : 'clay-pill-inactive'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                    ) : (
+                      <span className="w-3 h-3 rounded-full border border-slate-400/80 shrink-0" />
+                    )}
+                    <span>{item}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="pt-3 border-t border-slate-100">
