@@ -12,4 +12,5 @@ export interface AssessmentStepProps {
   handleDurationChange: (dur: string) => void;
   handleSuicideRiskChange: (risk: 'No Risk' | 'Low Risk' | 'Moderate Risk' | 'High Risk') => void;
   handleViolenceRiskChange: (risk: 'No Risk' | 'Low Risk' | 'Moderate Risk' | 'High Risk') => void;
+  onOpenHistoryModal?: () => void;
 }

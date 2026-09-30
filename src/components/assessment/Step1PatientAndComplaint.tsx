@@ -1,8 +1,9 @@
-import React from 'react';
-import { User, Activity, Calendar, Clock, CheckSquare } from 'lucide-react';
+import React, { useRef } from 'react';
+import { User, Activity, Calendar, Clock, CheckSquare, History, FolderOpen, ShieldCheck, Upload } from 'lucide-react';
 import { AssessmentStepProps } from './AssessmentStepProps';
 import { DebouncedInput } from './DebouncedInput';
 import { DebouncedTextarea } from './DebouncedTextarea';
+import { SearchableTokenMultiSelect } from './SearchableTokenMultiSelect';
 
 const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
   data,
@@ -11,7 +12,34 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
   onBlurField,
   toggleArrayItem,
   handleDurationChange,
+  onOpenHistoryModal,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDirectFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async event => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        const assessmentData = parsed.data || parsed;
+        if (assessmentData && (assessmentData.hospitalName !== undefined || assessmentData.hn !== undefined)) {
+          onChange(assessmentData);
+          const { saveToLocalHistory } = await import('../../utils/storage');
+          await saveToLocalHistory(assessmentData);
+        }
+      } catch (err) {
+        console.error('Error importing JSON file:', err);
+      }
+    };
+    reader.readAsText(file);
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
   return (
     <div className="space-y-6">
       {/* 0. Official Document Header Card (Mirrors A4 Document Header) */}
@@ -232,6 +260,62 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
         </div>
       </div>
 
+      {/* Local Storage & Saved Records Browser Quick Bar */}
+      <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-indigo-50 rounded-xl p-4 border border-blue-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+            <History className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-sm font-bold text-slate-900">
+                ประวัติการบันทึกในเครื่อง (Local Storage Records)
+              </h4>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-md border border-emerald-300">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>บันทึกเฉพาะในเครื่อง 100% (Offline & Private)</span>
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+              ดึงข้อมูลผู้ป่วยที่เคยบันทึกไว้ในเบราว์เซอร์ของเครื่องนี้กลับมาแก้ไขใหม่ได้ง่ายๆ พร้อมวันที่บันทึกกำกับชัดเจน (ข้อมูลไม่ถูกส่งขึ้นอินเทอร์เน็ต)
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {/* Browse Saved Records in localStorage */}
+          <button
+            type="button"
+            onClick={() => onOpenHistoryModal && onOpenHistoryModal()}
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            title="เปิดดูรายการประวัติที่บันทึกไว้ในเครื่องเพื่อโหลดกลับมาแก้ไข"
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            <span>ดูประวัติการบันทึก</span>
+          </button>
+
+          {/* Hidden File Input for Native JSON Local File Browsing */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleDirectFileImport}
+            className="sr-only"
+          />
+
+          {/* Browse Local File (.json) directly */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            title="เปิดไฟล์แบบประเมิน .json จากเครื่องของคุณ"
+          >
+            <Upload className="w-3.5 h-3.5 text-slate-500" />
+            <span>เปิดไฟล์จากเครื่อง (.json)</span>
+          </button>
+        </div>
+      </div>
+
       {/* SECTION A: Patient Identification (Mirrors A4 Document Page 1 Box 1) */}
       <section id="section-a" className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
         <div className="px-6 py-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
@@ -326,7 +410,7 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Age, Gender, Marital Status, Occupation */}
+          {/* Row 2: Age, Gender, Marital Status */}
           <div className="flex flex-wrap items-start gap-4">
             {/* Age (Compact 2-3 digits input) */}
             <div className="w-24 shrink-0">
@@ -361,77 +445,101 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
             </div>
 
             {/* Gender */}
-            <div className="w-32 shrink-0">
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 เพศ <span className="text-red-500">*</span>
               </label>
-              <select
-                id="field-gender"
-                value={data.gender}
-                onChange={e => onChange({ gender: e.target.value as any })}
-                onBlur={e => onBlurField && onBlurField('gender', e.target.value)}
-                className={`w-full text-sm bg-white border rounded-lg px-2.5 py-1.5 transition-all focus:ring-2 focus:ring-blue-600 focus:outline-none ${
-                  errors.gender
-                    ? 'border-red-500 bg-red-50/50'
-                    : !data.gender
-                    ? 'border-slate-300 border-l-4 border-l-rose-500 bg-rose-50/20'
-                    : 'border-slate-300'
-                }`}
-              >
-                <option value="">-- เพศ --</option>
-                <option value="ชาย">ชาย</option>
-                <option value="หญิง">หญิง</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-              </select>
+              <div className="flex gap-1">
+                {(['ชาย', 'หญิง', 'อื่นๆ'] as const).map(g => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => onChange({ gender: g })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      data.gender === g
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Marital Status */}
-            <div className="w-40 shrink-0">
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 สถานภาพสมรส
               </label>
-              <select
-                value={data.maritalStatus}
-                onChange={e => onChange({ maritalStatus: e.target.value as any })}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="โสด">โสด</option>
-                <option value="สมรส">สมรส</option>
-                <option value="หม้าย/หย่า/แยก">หม้าย/หย่า/แยก</option>
-              </select>
+              <div className="flex flex-wrap gap-1">
+                {(['โสด', 'สมรส', 'หม้าย/หย่า/แยก'] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => onChange({ maritalStatus: m })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      (data.maritalStatus || 'โสด') === m
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Occupation */}
-            <div className="w-48 shrink-0">
+            {/* Occupation (4 buttons: พลทหาร, ข้าราชการ, เอกชน, ว่างงาน with default ว่างงาน) */}
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                อาชีพ
+                อาชีพ (Occupation) <span className="text-slate-400 font-normal text-[11px]">(Default: ว่างงาน)</span>
               </label>
-              <input
-                type="text"
-                value={data.occupation}
-                onChange={e => onChange({ occupation: e.target.value })}
-                placeholder="เช่น ค้าขาย, ข้าราชการ"
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
+              <div className="flex flex-wrap gap-1">
+                {(['พลทหาร', 'ข้าราชการ', 'เอกชน', 'ว่างงาน'] as const).map(occ => {
+                  const isSelected = (data.occupation || 'ว่างงาน') === occ;
+                  return (
+                    <button
+                      key={occ}
+                      type="button"
+                      onClick={() => onChange({ occupation: occ })}
+                      className={`px-3.5 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs ring-1 ring-blue-400'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {occ}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* Row 3: Education Level, Informant, Reliability */}
           <div className="flex flex-wrap items-start gap-4 pt-1">
-            {/* Education Level (ระดับการศึกษาสูงสุด: ประถมศึกษา, มัธยมศึกษา, ปริญญาตรีหรือสูงกว่า, Default = มัธยมศึกษา) */}
-            <div className="w-56 shrink-0">
+            {/* Education Level */}
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 ระดับการศึกษาสูงสุด
               </label>
-              <select
-                value={data.educationLevel || 'มัธยมศึกษา'}
-                onChange={e => onChange({ educationLevel: e.target.value })}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="ประถมศึกษา">ประถมศึกษา</option>
-                <option value="มัธยมศึกษา">มัธยมศึกษา</option>
-                <option value="ปริญญาตรีหรือสูงกว่า">ปริญญาตรีหรือสูงกว่า</option>
-              </select>
+              <div className="flex flex-wrap gap-1">
+                {(['ประถมศึกษา', 'มัธยมศึกษา', 'ปริญญาตรีหรือสูงกว่า'] as const).map(edu => (
+                  <button
+                    key={edu}
+                    type="button"
+                    onClick={() => onChange({ educationLevel: edu })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      (data.educationLevel || 'มัธยมศึกษา') === edu
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {edu}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Informant */}
@@ -480,19 +588,26 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
             )}
 
             {/* Reliability */}
-            <div className="w-48 shrink-0">
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 ความน่าเชื่อถือของข้อมูล (Reliability)
               </label>
-              <select
-                value={data.reliability}
-                onChange={e => onChange({ reliability: e.target.value as any })}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="ดี (Good)">ดี (Good)</option>
-                <option value="พอใช้ (Fair)">พอใช้ (Fair)</option>
-                <option value="เชื่อถือไม่ได้ (Poor)">เชื่อถือไม่ได้ (Poor)</option>
-              </select>
+              <div className="flex gap-1">
+                {(['ดี (Good)', 'พอใช้ (Fair)', 'เชื่อถือไม่ได้ (Poor)'] as const).map(rel => (
+                  <button
+                    key={rel}
+                    type="button"
+                    onClick={() => onChange({ reliability: rel })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      (data.reliability || 'ดี (Good)') === rel
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {rel}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -513,11 +628,11 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
         <div className="p-6 space-y-5">
           {/* Chief Complaint */}
           <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
-              อาการสำคัญ (Chief Complaint) <span className="text-xs font-normal text-slate-500">(เลือกได้มากกว่า 1 ข้อ)</span>
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+              อาการสำคัญ (Chief Complaint) <span className="text-xs font-normal text-slate-500">(เลือกหรือพิมพ์ค้นหาได้มากกว่า 1 ข้อ)</span>
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-              {[
+            <SearchableTokenMultiSelect
+              options={[
                 'ซึมเศร้า/ท้อแท้',
                 'หงุดหงิด/ก้าวร้าว',
                 'หูแว่ว/ประสาทหลอน',
@@ -525,31 +640,15 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                 'สับสน/หลงลืม',
                 'ทำร้ายตนเอง',
                 'มีปัญหาพฤติกรรม',
-              ].map(item => {
-                const isSelected = data.chiefComplaint.includes(item);
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => toggleArrayItem('chiefComplaint', item)}
-                    className={`px-3 py-2 text-xs font-medium rounded-lg border text-left flex items-center gap-2 transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-blue-50 border-blue-500 text-blue-900 font-semibold shadow-2xs'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <CheckSquare
-                      className={`w-4 h-4 shrink-0 ${
-                        isSelected ? 'text-blue-600' : 'text-slate-300'
-                      }`}
-                    />
-                    <span className="truncate">{item}</span>
-                  </button>
-                );
-              })}
-            </div>
+              ]}
+              selected={data.chiefComplaint || []}
+              onToggle={item => toggleArrayItem('chiefComplaint', item)}
+              placeholder="เลือกหรือค้นหาอาการสำคัญ..."
+              searchPlaceholder="พิมพ์ค้นหา / กด Enter เพื่อเพิ่ม..."
+              tokenColorClass="bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100"
+            />
 
-            <div className="mt-2.5 space-y-1 max-w-md">
+            <div className="mt-2 space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-slate-500 font-medium">ระบุอาการสำคัญอื่นๆ เพิ่มเติม (ถ้ามี)</span>
               </div>
@@ -566,124 +665,122 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
 
           {/* Duration, Onset, Course */}
           <div className="flex flex-wrap items-start gap-4 pt-3 border-t border-slate-100">
-            <div className="w-48 shrink-0">
+            {/* Duration */}
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                ระยะเวลาที่มีอาการ
+                ระยะเวลาที่มีอาการ (Duration)
               </label>
-              <select
-                value={data.duration}
-                onChange={e => handleDurationChange(e.target.value)}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="">-- เลือกระยะเวลา --</option>
-                <option value="1 วัน">1 วัน</option>
-                <option value="< 1 สัปดาห์">&lt; 1 สัปดาห์</option>
-                <option value="1-4 สัปดาห์">1-4 สัปดาห์</option>
-                <option value="1-6 เดือน">1-6 เดือน</option>
-                <option value="> 6 เดือน">&gt; 6 เดือน</option>
-              </select>
+              <div className="flex flex-wrap gap-1">
+                {(['1 วัน', '< 1 สัปดาห์', '1-4 สัปดาห์', '1-6 เดือน', '> 6 เดือน'] as const).map(dur => (
+                  <button
+                    key={dur}
+                    type="button"
+                    onClick={() => handleDurationChange(dur)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      data.duration === dur
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {dur}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="w-52 shrink-0">
+            {/* Onset */}
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 ลักษณะการเกิดอาการ (Onset)
               </label>
-              <select
-                value={data.onset}
-                onChange={e => onChange({ onset: e.target.value as any })}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="เฉียบพลัน (Acute)">เฉียบพลัน (Acute)</option>
-                <option value="ค่อยเป็นค่อยไป (Gradual)">ค่อยเป็นค่อยไป (Gradual)</option>
-              </select>
+              <div className="flex gap-1">
+                {(['เฉียบพลัน (Acute)', 'ค่อยเป็นค่อยไป (Gradual)'] as const).map(on => (
+                  <button
+                    key={on}
+                    type="button"
+                    onClick={() => onChange({ onset: on })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      (data.onset || 'ค่อยเป็นค่อยไป (Gradual)') === on
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {on}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="w-56 shrink-0">
+            {/* Course */}
+            <div className="shrink-0">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 การดำเนินโรค (Course)
               </label>
-              <select
-                value={data.course}
-                onChange={e => onChange({ course: e.target.value as any })}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="ดีขึ้นสลับแย่ลง (Fluctuating)">ดีขึ้นสลับแย่ลง (Fluctuating)</option>
-                <option value="แย่ลงเรื่อยๆ (Progressive)">แย่ลงเรื่อยๆ (Progressive)</option>
-                <option value="คงที่ (Stable)">คงที่ (Stable)</option>
-              </select>
+              <div className="flex flex-wrap gap-1">
+                {(['ดีขึ้นสลับแย่ลง (Fluctuating)', 'แย่ลงเรื่อยๆ (Progressive)', 'คงที่ (Stable)'] as const).map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => onChange({ course: c })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      (data.course || 'แย่ลงเรื่อยๆ (Progressive)') === c
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Precipitating Factors & Associated Symptoms */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-slate-100">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                 ปัจจัยกระตุ้น (Precipitating factors)
               </label>
-              <div className="flex flex-wrap gap-2">
-                {[
+              <SearchableTokenMultiSelect
+                options={[
                   'ปัญหาครอบครัว/ความสัมพันธ์',
                   'การเงิน/การงาน',
                   'ขาดยา',
                   'ใช้สารเสพติด',
                   'โรคทางกายกำเริบ',
                   'ไม่พบปัจจัยชัดเจน',
-                ].map(factor => {
-                  const active = data.precipitatingFactors.includes(factor);
-                  return (
-                    <button
-                      key={factor}
-                      type="button"
-                      onClick={() => toggleArrayItem('precipitatingFactors', factor)}
-                      className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors cursor-pointer ${
-                        active
-                          ? 'bg-blue-100 text-blue-800 border-blue-400 font-semibold'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {active ? '✓ ' : '+ '}
-                      {factor}
-                    </button>
-                  );
-                })}
-              </div>
+                ]}
+                selected={data.precipitatingFactors || []}
+                onToggle={item => toggleArrayItem('precipitatingFactors', item)}
+                placeholder="เลือกหรือค้นหาปัจจัยกระตุ้น..."
+                searchPlaceholder="ค้นหาปัจจัยกระตุ้น..."
+                tokenColorClass="bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                 อาการร่วมที่สำคัญ (Associated symptoms)
               </label>
-              <div className="flex flex-wrap gap-2">
-                {[
+              <SearchableTokenMultiSelect
+                options={[
                   'นอนไม่หลับ',
                   'เบื่ออาหาร',
                   'น้ำหนักลด/เพิ่ม',
                   'อ่อนเพลีย',
                   'แยกตัว',
                   'พฤติกรรมแปลกไปจากเดิม',
-                ].map(symptom => {
-                  const active = data.associatedSymptoms.includes(symptom);
-                  return (
-                    <button
-                      key={symptom}
-                      type="button"
-                      onClick={() => toggleArrayItem('associatedSymptoms', symptom)}
-                      className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors cursor-pointer ${
-                        active
-                          ? 'bg-blue-100 text-blue-800 border-blue-400 font-semibold'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {active ? '✓ ' : '+ '}
-                      {symptom}
-                    </button>
-                  );
-                })}
-              </div>
+                ]}
+                selected={data.associatedSymptoms || []}
+                onToggle={item => toggleArrayItem('associatedSymptoms', item)}
+                placeholder="เลือกหรือค้นหาอาการร่วม..."
+                searchPlaceholder="ค้นหาอาการร่วม..."
+                tokenColorClass="bg-purple-50 text-purple-900 border-purple-300 hover:bg-purple-100"
+              />
             </div>
           </div>
 
-            {/* Detailed HPI text */}
+          {/* Detailed HPI text */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
@@ -707,20 +804,27 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 การรักษาก่อนหน้า
               </label>
-              <select
-                value={data.previousTreatment}
-                onChange={e => {
-                  const val = e.target.value as any;
-                  onChange({
-                    previousTreatment: val,
-                    ...(val === 'ไม่เคยรักษาจิตเวชมาก่อน' ? { previousHospital: '', previousResponse: '' } : {}),
-                  });
-                }}
-                className="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                <option value="ไม่เคยรักษาจิตเวชมาก่อน">ไม่เคยรักษาจิตเวชมาก่อน</option>
-                <option value="เคยรักษา">เคยรักษา</option>
-              </select>
+              <div className="flex flex-wrap gap-1">
+                {(['ไม่เคยรักษาจิตเวชมาก่อน', 'เคยรักษา'] as const).map(pt => (
+                  <button
+                    key={pt}
+                    type="button"
+                    onClick={() => {
+                      onChange({
+                        previousTreatment: pt,
+                        ...(pt === 'ไม่เคยรักษาจิตเวชมาก่อน' ? { previousHospital: '', previousResponse: '' } : {}),
+                      });
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      (data.previousTreatment || 'ไม่เคยรักษาจิตเวชมาก่อน') === pt
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pt}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {data.previousTreatment === 'เคยรักษา' && (
@@ -742,17 +846,22 @@ const Step1PatientAndComplaintComponent: React.FC<AssessmentStepProps> = ({
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                     ผลการรักษาเดิม
                   </label>
-                  <select
-                    value={data.previousResponse}
-                    onChange={e => onChange({ previousResponse: e.target.value as any })}
-                    className="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  >
-                    <option value="">-- เลือกผลการรักษา --</option>
-                    <option value="ตอบสนองดี">ตอบสนองดี</option>
-                    <option value="ตอบสนองบางส่วน">ตอบสนองบางส่วน</option>
-                    <option value="ไม่ตอบสนอง">ไม่ตอบสนอง</option>
-                    <option value="มีผลข้างเคียงจากยา">มีผลข้างเคียงจากยา</option>
-                  </select>
+                  <div className="flex flex-wrap gap-1">
+                    {(['ร่วมมือดี อาการสงบ', 'ขาดยาบ่อย', 'ปฏิเสธการเจ็บป่วย/ไม่ยอมทานยา'] as const).map(resp => (
+                      <button
+                        key={resp}
+                        type="button"
+                        onClick={() => onChange({ previousResponse: resp })}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                          data.previousResponse === resp
+                            ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {resp}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}

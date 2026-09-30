@@ -27,6 +27,8 @@ import {
   saveFormDraft,
   loadFormDraft,
   clearFormDraft,
+  loadLocalHistory,
+  saveToLocalHistory,
 } from './utils/storage';
 
 // Code-split heavy modals and printable components for ultra-fast initial page load
@@ -35,6 +37,9 @@ const PdfPreviewModal = React.lazy(() =>
 );
 const AssessmentPdfDocument = React.lazy(() =>
   import('./components/AssessmentPdfDocument').then(m => ({ default: m.AssessmentPdfDocument }))
+);
+const LocalHistoryModal = React.lazy(() =>
+  import('./components/LocalHistoryModal').then(m => ({ default: m.LocalHistoryModal }))
 );
 
 const REQUIRED_FIELDS = [
@@ -51,6 +56,8 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [viewMode, setViewMode] = useState<'wizard' | 'full'>('wizard');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyCount, setHistoryCount] = useState<number>(0);
   const [isSavingAndExporting, setIsSavingAndExporting] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
@@ -67,8 +74,14 @@ export default function App() {
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
+  const updateHistoryCount = useCallback(async () => {
+    const list = await loadLocalHistory();
+    setHistoryCount(list.length);
+  }, []);
+
   // Restore autosaved draft on first load
   useEffect(() => {
+    updateHistoryCount();
     const restoreDraft = async () => {
       const draft = await loadFormDraft();
       if (draft && draft.data) {
@@ -100,7 +113,7 @@ export default function App() {
       }
     };
     restoreDraft();
-  }, []);
+  }, [updateHistoryCount]);
 
   // Periodic debounced auto-save effect (1.2s after user stops typing)
   useEffect(() => {
@@ -388,7 +401,27 @@ export default function App() {
       'โหลดข้อมูลตัวอย่างแล้ว',
       'ใส่ข้อมูลผู้ป่วยตัวอย่าง นายสมศักดิ์ รักสงบ (HN: 67001234) ให้ทดสอบระบบ'
     );
+    updateHistoryCount();
   };
+
+  const handleLoadRecord = useCallback(async (record: PsychiatricAssessment) => {
+    setFormData(record);
+    await saveFormDraft(record);
+    setErrors({});
+    const nowStr = new Date().toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    setLastAutoSavedTime(nowStr);
+    setAutoSaveStatus('saved');
+    showToast(
+      'success',
+      'โหลดข้อมูลประวัติสำเร็จ',
+      `ดึงข้อมูลของ "${record.fullName || 'ผู้ป่วย'}" (HN: ${record.hn || 'ไม่ระบุ'}) กลับมาพร้อมแก้ไขและพิมพ์แล้ว`
+    );
+    updateHistoryCount();
+  }, [updateHistoryCount]);
 
   const handleResetForm = () => {
     setIsResetConfirmOpen(true);
@@ -473,6 +506,22 @@ export default function App() {
               <span className="hidden md:inline">ข้อมูลตัวอย่าง</span>
             </button>
 
+            {/* ประวัติการบันทึก (Local Records) */}
+            <button
+              type="button"
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="text-xs font-bold text-blue-900 hover:text-blue-950 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer px-2.5 sm:px-3 py-1.5 shadow-2xs"
+              title="เปิดดูประวัติการบันทึกที่เก็บไว้ในเครื่องของคุณ (Local Storage)"
+            >
+              <History className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span>ประวัติการบันทึก</span>
+              {historyCount > 0 && (
+                <span className="px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[10px] font-bold">
+                  {historyCount}
+                </span>
+              )}
+            </button>
+
             {/* ล้างฟอร์มใหม่ */}
             <button
               type="button"
@@ -528,6 +577,7 @@ export default function App() {
             onStepChange={setCurrentStep}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            onOpenHistoryModal={() => setIsHistoryModalOpen(true)}
           />
         </div>
 
@@ -571,8 +621,23 @@ export default function App() {
           </div>
 
           {/* Action Buttons - ultra slim & compact on iPhone */}
-          {/* Action Buttons - ultra slim & compact on iPhone */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* History Records Button */}
+            <button
+              type="button"
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="p-1.5 sm:px-3 sm:py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-slate-600 flex items-center gap-1.5"
+              title="ดูประวัติการบันทึกในเครื่อง (Local Storage)"
+            >
+              <History className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span className="hidden sm:inline">ประวัติ</span>
+              {historyCount > 0 && (
+                <span className="px-1.5 py-0.2 bg-blue-500 text-white rounded-full text-[10px] font-bold">
+                  {historyCount}
+                </span>
+              )}
+            </button>
+
             {/* Native Browser Print button */}
             <button
               onClick={handleNativePrint}
@@ -659,6 +724,17 @@ export default function App() {
             isOpen={isPreviewModalOpen}
             onClose={() => setIsPreviewModalOpen(false)}
             data={formData}
+          />
+        )}
+        {isHistoryModalOpen && (
+          <LocalHistoryModal
+            isOpen={isHistoryModalOpen}
+            onClose={() => {
+              setIsHistoryModalOpen(false);
+              updateHistoryCount();
+            }}
+            onLoadRecord={handleLoadRecord}
+            currentData={formData}
           />
         )}
       </Suspense>

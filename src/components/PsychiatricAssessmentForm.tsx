@@ -19,6 +19,7 @@ interface Props {
   onStepChange?: (step: number) => void;
   viewMode?: 'wizard' | 'full';
   onViewModeChange?: (mode: 'wizard' | 'full') => void;
+  onOpenHistoryModal?: () => void;
 }
 
 const STEPS = [
@@ -59,6 +60,7 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
   onStepChange,
   viewMode = 'wizard',
   onViewModeChange,
+  onOpenHistoryModal,
 }) => {
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -74,6 +76,22 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
 
   const toggleArrayItem = useCallback((field: keyof PsychiatricAssessment, item: string) => {
     const current = (dataRef.current[field] as string[]) || [];
+
+    if (field === 'psychosocialStressors') {
+      if (item === 'ไม่มี/ไม่ชัดเจน') {
+        const updated = current.includes('ไม่มี/ไม่ชัดเจน') ? [] : ['ไม่มี/ไม่ชัดเจน'];
+        onChange({ [field]: updated });
+        return;
+      } else {
+        const withoutNone = current.filter(i => i !== 'ไม่มี/ไม่ชัดเจน');
+        const updated = withoutNone.includes(item)
+          ? withoutNone.filter(i => i !== item)
+          : [...withoutNone, item];
+        onChange({ [field]: updated });
+        return;
+      }
+    }
+
     const updated = current.includes(item)
       ? current.filter(i => i !== item)
       : [...current, item];
@@ -162,6 +180,7 @@ const PsychiatricAssessmentFormComponent: React.FC<Props> = ({
     handleDurationChange,
     handleSuicideRiskChange,
     handleViolenceRiskChange,
+    onOpenHistoryModal,
   };
 
   return (
